@@ -120,7 +120,7 @@ def _color_by_threshold(value: float) -> str:
 
 def get_store() -> Store:
     config = load_config()
-    return Store(config["data"]["db_path"])
+    return Store(config["data"]["db_path"], read_only=True)
 
 
 def main():
@@ -145,25 +145,28 @@ def main():
 
     store = get_store()
     config = load_config()
-    latest = store.get_latest_composite()
+    try:
+        latest = store.get_latest_composite()
 
-    if latest is None:
-        st.warning("분석 데이터가 없습니다. 먼저 업데이트를 실행해주세요:")
-        st.code("uv run portfolio-update")
-        return
+        if latest is None:
+            st.warning("분석 데이터가 없습니다. 먼저 업데이트를 실행해주세요:")
+            st.code("uv run portfolio-update")
+            return
 
-    _render_signal_card(latest)
-    _render_basis(latest)
-    _render_metrics(latest)
-    _render_comment(store)
-    _render_price_charts(store)
-    _render_gsr(store)
-    _render_zscore(store)
-    _render_composite_history(store)
-    _render_details(store, config)
-    _render_comments_section(store)
-    _render_footer()
-    _render_sidebar(store, latest)
+        _render_signal_card(latest)
+        _render_basis(latest)
+        _render_metrics(latest)
+        _render_comment(store)
+        _render_price_charts(store)
+        _render_gsr(store)
+        _render_zscore(store)
+        _render_composite_history(store)
+        _render_details(store, config)
+        _render_comments_section(store)
+        _render_footer()
+        _render_sidebar(store, latest)
+    finally:
+        store.close()
 
 
 def _render_signal_card(latest: dict):
@@ -329,7 +332,12 @@ def _render_comments_section(store: Store):
     with st.expander("코멘트 기록"):
         comment_text = st.text_area("코멘트 작성", height=80)
         if st.button("저장") and comment_text.strip():
-            store.add_comment(datetime.now(), comment_text.strip(), author="user")
+            config = load_config()
+            write_store = Store(config["data"]["db_path"])
+            try:
+                write_store.add_comment(datetime.now(), comment_text.strip(), author="user")
+            finally:
+                write_store.close()
             st.success("저장됨.")
             st.rerun()
 
@@ -359,7 +367,7 @@ def _render_sidebar(store: Store, latest: dict):
             for _, row in sync.iterrows():
                 status = "OK" if row["status"] == "ok" else "ERR"
                 st.text(f"[{status}] {row['source']}")
-        calc_date = str(latest["calc_date"])[:16]
+        calc_date = str(latest["calc_date"])[:10]
         st.caption(f"마지막 분석: {calc_date}")
 
 

@@ -19,7 +19,7 @@ def _get_db_path() -> str:
 @mcp.tool()
 def get_scores() -> dict:
     """현재 복합 점수 및 Z-Score 전체 조회."""
-    store = Store(_get_db_path())
+    store = Store(_get_db_path(), read_only=True)
     try:
         latest = store.get_latest_composite()
         zscores = store.get_latest_zscores()
@@ -34,7 +34,7 @@ def get_scores() -> dict:
 @mcp.tool()
 def get_signals() -> dict:
     """현재 비율 조정 신호 및 해석."""
-    store = Store(_get_db_path())
+    store = Store(_get_db_path(), read_only=True)
     try:
         latest = store.get_latest_composite()
         if latest is None:
@@ -75,7 +75,7 @@ def get_history(symbol: str, start: str | None = None, end: str | None = None) -
         start: 시작일 (YYYY-MM-DD), 선택
         end: 종료일 (YYYY-MM-DD), 선택
     """
-    store = Store(_get_db_path())
+    store = Store(_get_db_path(), read_only=True)
     try:
         start_date = date.fromisoformat(start) if start else None
         end_date = date.fromisoformat(end) if end else None
@@ -121,7 +121,7 @@ def get_report(period: str = "monthly") -> dict:
     Args:
         period: 리포트 기간 (monthly, semi_annual, annual)
     """
-    store = Store(_get_db_path())
+    store = Store(_get_db_path(), read_only=True)
     try:
         latest = store.get_latest_composite()
         comments = store.get_comments(limit=5)

@@ -10,11 +10,12 @@ import pandas as pd
 class Store:
     """DuckDB-backed data store for all portfolio advisor data."""
 
-    def __init__(self, db_path: str = ":memory:"):
+    def __init__(self, db_path: str = ":memory:", read_only: bool = False):
         if db_path != ":memory:":
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = duckdb.connect(db_path)
-        self._ensure_schema()
+        self.conn = duckdb.connect(db_path, read_only=read_only)
+        if not read_only:
+            self._ensure_schema()
 
     def close(self):
         self.conn.close()
@@ -72,7 +73,7 @@ class Store:
         """)
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS composite_scores (
-                calc_date       TIMESTAMP NOT NULL,
+                calc_date       DATE NOT NULL,
                 s_gold          DOUBLE DEFAULT 0,
                 s_silver        DOUBLE NOT NULL,
                 s_sp500         DOUBLE DEFAULT 0,
@@ -188,10 +189,10 @@ class Store:
         self.conn.unregister("_tmp_composite")
         return len(df)
 
-    def add_comment(self, date: date, content: str, author: str = "claude") -> int:
+    def add_comment(self, comment_dt: datetime, content: str, author: str = "claude") -> int:
         result = self.conn.execute(
             "INSERT INTO comments (date, author, content) VALUES (?, ?, ?) RETURNING id",
-            [date, author, content],
+            [comment_dt, author, content],
         ).fetchone()
         return result[0]
 

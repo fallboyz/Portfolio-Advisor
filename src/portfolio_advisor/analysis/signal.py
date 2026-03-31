@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import date, datetime
+from datetime import date
 
 import pandas as pd
 
@@ -135,7 +135,7 @@ def compute_full_signal(
     )
     from portfolio_advisor.analysis.zscore import compute_all_zscores
 
-    calc_date = as_of_date or datetime.now()
+    calc_date = as_of_date or date.today()
     weights = config.get("weights", {})
     thresholds = config.get("signals", {})
     overlay_config = config.get("drawdown_overlay", {})
