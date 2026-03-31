@@ -330,7 +330,9 @@ def _render_comments_section(store: Store):
         comment_text = st.text_area("코멘트 작성", height=80)
         if st.button("저장") and comment_text.strip():
             config = load_config()
-            write_store = Store(config["data"]["db_path"], read_only=False)
+            db_path = config["data"]["db_path"]
+            store.close()
+            write_store = Store(db_path, read_only=False)
             write_store.add_comment(datetime.now(), comment_text.strip(), author="user")
             write_store.close()
             st.success("저장됨.")
