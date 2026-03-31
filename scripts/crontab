@@ -1,0 +1,1 @@
+0 3 * * * cd /app && /bin/uv run portfolio-update >> /var/log/portfolio-update.log 2>&1

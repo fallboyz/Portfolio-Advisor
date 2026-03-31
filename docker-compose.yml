@@ -1,0 +1,14 @@
+services:
+  portfolio-advisor:
+    build: .
+    ports:
+      - "8501:8501"
+      - "8001:8001"
+    volumes:
+      - ./data:/app/data
+      - ./config.toml:/app/config.toml
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Seoul
+    restart: unless-stopped

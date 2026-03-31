@@ -1,0 +1,47 @@
+[api_keys]
+fred = ""  # .env 파일의 FRED_API_KEY 사용
+
+[schedule]
+data_update = "0 3 * * *"
+
+[data]
+db_path = "data/portfolio.ddb"
+raw_dir = "data/raw"
+macrotrends_csv = "data/raw/silver_historical.csv"
+shiller_excel = "data/raw/ie_data.xls"
+shiller_url = "http://www.econ.yale.edu/~shiller/data/ie_data.xls"
+
+[symbols]
+silver = "SI=F"
+gold = "GC=F"
+sp500 = "^GSPC"
+ndx = "^NDX"
+dxy = "DX-Y.NYB"
+vix = "^VIX"
+
+[fred_series]
+fed_funds = "FEDFUNDS"
+cpi = "CPIAUCSL"
+
+[server]
+streamlit_port = 8501
+mcp_port = 8001
+mcp_host = "0.0.0.0"
+
+[weights]
+w1_50y = 0.20
+w2_10y = 0.25
+w3_5y = 0.25
+w4_valuation = 0.20
+w5_gsr = 0.10
+
+[signals]
+strong_precious = -2.0
+mild_precious = -1.0
+mild_etf = 1.0
+strong_etf = 2.0
+
+[drawdown_overlay]
+silver_crash_threshold = -40
+etf_crash_threshold = -30
+silver_rally_threshold = 100
