@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from fastmcp import FastMCP
 
@@ -99,12 +99,15 @@ def add_comment(date_str: str, content: str) -> dict:
     """분석 코멘트 기록.
 
     Args:
-        date_str: 날짜 (YYYY-MM-DD)
+        date_str: 날짜 (YYYY-MM-DD) 또는 날짜시간 (YYYY-MM-DDTHH:MM:SS)
         content: 코멘트 내용
     """
     store = Store(_get_db_path())
     try:
-        comment_date = date.fromisoformat(date_str)
+        if "T" in date_str or " " in date_str:
+            comment_date = datetime.fromisoformat(date_str)
+        else:
+            comment_date = datetime.fromisoformat(date_str + "T" + datetime.now().strftime("%H:%M:%S"))
         comment_id = store.add_comment(comment_date, content, author="claude")
         return {"id": comment_id, "status": "saved"}
     finally:
