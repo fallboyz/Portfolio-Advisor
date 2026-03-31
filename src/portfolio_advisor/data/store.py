@@ -10,12 +10,11 @@ import pandas as pd
 class Store:
     """DuckDB-backed data store for all portfolio advisor data."""
 
-    def __init__(self, db_path: str = ":memory:", read_only: bool = False):
+    def __init__(self, db_path: str = ":memory:"):
         if db_path != ":memory:":
             Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.conn = duckdb.connect(db_path, read_only=read_only)
-        if not read_only:
-            self._ensure_schema()
+        self.conn = duckdb.connect(db_path)
+        self._ensure_schema()
 
     def close(self):
         self.conn.close()
