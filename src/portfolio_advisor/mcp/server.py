@@ -17,7 +17,7 @@ def _get_store() -> Store:
     global _store
     if _store is None:
         config = load_config()
-        _store = Store(config["data"]["db_path"])
+        _store = Store(config["data"]["db_path"], read_only=True)
     return _store
 
 
@@ -101,9 +101,11 @@ def add_comment(date_str: str, content: str) -> dict:
         date_str: 날짜 (YYYY-MM-DD)
         content: 코멘트 내용
     """
-    store = _get_store()
+    config = load_config()
+    write_store = Store(config["data"]["db_path"], read_only=False)
     comment_date = date.fromisoformat(date_str)
-    comment_id = store.add_comment(comment_date, content, author="claude")
+    comment_id = write_store.add_comment(comment_date, content, author="claude")
+    write_store.close()
     return {"id": comment_id, "status": "saved"}
 
 
