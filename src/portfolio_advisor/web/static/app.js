@@ -480,16 +480,19 @@
         var sel = document.getElementById("analysis-date-select");
         dates.forEach(function (entry) {
             var opt = document.createElement("option");
-            var calcDate = entry.calc_date;
-            var analyzedAt = entry.analyzed_at;
-            opt.value = calcDate;
-            opt.textContent = calcDate + "  " + analyzedAt.substring(11, 16);
+            opt.value = entry.calc_date + "T" + entry.analyzed_at.substring(11);
+            opt.textContent = entry.calc_date + "  " + entry.analyzed_at.substring(11, 16);
             sel.appendChild(opt);
         });
     }
 
-    function loadAnalysis(dateStr) {
-        fetch("/api/analysis/" + dateStr)
+    function loadAnalysis(value) {
+        var parts = value.split("T");
+        var dateStr = parts[0];
+        var analyzedAt = parts.length > 1 ? parts[1] : "";
+        var url = "/api/analysis/" + dateStr;
+        if (analyzedAt) url += "?analyzed_at=" + encodeURIComponent(dateStr + "T" + analyzedAt);
+        fetch(url)
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 if (data.error) return;

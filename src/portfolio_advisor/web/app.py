@@ -179,13 +179,19 @@ def api_indicators(name: str):
 
 
 @app.get("/api/analysis/{analysis_date}")
-def api_analysis(analysis_date: str):
+def api_analysis(analysis_date: str, analyzed_at: str | None = None):
     try:
         target = date.fromisoformat(analysis_date)
     except ValueError:
         return {"error": "invalid date format"}
+    analyzed_at_dt = None
+    if analyzed_at:
+        try:
+            analyzed_at_dt = datetime.fromisoformat(analyzed_at)
+        except ValueError:
+            pass
     with _open_store() as store:
-        composite = store.get_composite_by_date(target)
+        composite = store.get_composite_by_date(target, analyzed_at=analyzed_at_dt)
         zscores = store.get_zscores_by_date(target)
         comments = store.get_comments_by_date(target)
 
