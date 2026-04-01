@@ -324,6 +324,15 @@ class Store:
             [target_date],
         ).fetchdf()
 
+    def get_comments_near(self, analyzed_at: datetime, window_seconds: int = 600) -> pd.DataFrame:
+        """analyzed_at 시점 전후 window 내의 코멘트 조회."""
+        return self.conn.execute(
+            """SELECT * FROM comments
+            WHERE ABS(EPOCH(CAST(date AS TIMESTAMP) - CAST(? AS TIMESTAMP))) <= ?
+            ORDER BY created_at""",
+            [analyzed_at, window_seconds],
+        ).fetchdf()
+
     def get_zscores_by_date(self, calc_date: date) -> pd.DataFrame:
         return self.conn.execute(
             "SELECT * FROM zscores WHERE calc_date = ? ORDER BY symbol, metric",

@@ -193,7 +193,7 @@ def api_analysis(analysis_date: str, analyzed_at: str | None = None):
     with _open_store() as store:
         composite = store.get_composite_by_date(target, analyzed_at=analyzed_at_dt)
         zscores = store.get_zscores_by_date(target)
-        comments = store.get_comments_by_date(target)
+        comments = store.get_comments_near(analyzed_at_dt) if analyzed_at_dt else store.get_comments_by_date(target)
 
         if composite is None:
             return {"error": "no data for this date"}
