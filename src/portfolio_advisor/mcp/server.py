@@ -137,6 +137,42 @@ def get_report(period: str = "monthly") -> dict:
         store.close()
 
 
+@mcp.tool()
+def get_news(asset_type: str = "all", days: int = 7) -> dict:
+    """자산별 최근 뉴스 조회 (Finnhub 기반).
+
+    Args:
+        asset_type: "gold", "silver", "equity", "macro", "all"
+        days: 최근 며칠 (기본 7일)
+    """
+    from portfolio_advisor.data.fetchers import fetch_finnhub_news, filter_news_by_asset
+
+    config = load_config()
+    api_key = config.get("api_keys", {}).get("finnhub", "")
+    if not api_key:
+        return {"error": "Finnhub API 키 미설정"}
+
+    articles = fetch_finnhub_news(api_key, days=days)
+
+    if asset_type != "all":
+        articles = filter_news_by_asset(articles, asset_type)
+
+    formatted = []
+    for a in articles[:20]:
+        formatted.append({
+            "headline": a["headline"],
+            "summary": a["summary"][:200] if a["summary"] else "",
+            "source": a["source"],
+            "datetime": datetime.fromtimestamp(a["datetime"]).strftime("%Y-%m-%d %H:%M") if a["datetime"] else "",
+        })
+
+    return {
+        "asset_type": asset_type,
+        "count": len(formatted),
+        "articles": formatted,
+    }
+
+
 def main():
     import uvicorn
     from starlette.applications import Starlette

@@ -70,6 +70,15 @@ CAPE 참고 수치:
 | Buffett Indicator | S&P500 / GDP | 높을수록 주식 과평가 (120% 이상 경고) |
 | Yield Curve | 10년 금리 - 3개월 금리 | 음수(역전) = 경기 둔화 신호 |
 
+## 뉴스 데이터 (MCP 분석용)
+
+| 데이터 | 출처 | API | 용도 |
+|--------|------|-----|------|
+| 시장 뉴스 | Finnhub | finnhub.io/api/v1/news | AI 분석 시 시장 동향 참조 |
+
+MCP를 통한 AI 분석 시에만 사용. 자동 분석(스케줄러)에서는 사용하지 않음.
+자산별 키워드 필터링으로 관련 뉴스만 추출 (gold, silver, equity, macro).
+
 ## 데이터 출처 URL
 
 | 출처 | URL |
@@ -78,3 +87,4 @@ CAPE 참고 수치:
 | Shiller Data | shillerdata.com |
 | FRED | fred.stlouisfed.org |
 | Yahoo Finance | finance.yahoo.com |
+| Finnhub | finnhub.io |

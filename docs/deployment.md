@@ -27,6 +27,7 @@ cp .env.example .env
 
 ```
 FRED_API_KEY=발급받은_키
+FINNHUB_API_KEY=발급받은_키
 ```
 
 Docker Compose가 `env_file: .env`로 자동 로딩합니다.
@@ -38,6 +39,7 @@ Docker Compose가 `env_file: .env`로 자동 로딩합니다.
 ```toml
 [api_keys]
 fred = ""  # .env의 FRED_API_KEY 사용
+finnhub = ""  # .env의 FINNHUB_API_KEY 사용
 
 [data]
 db_path = "data/portfolio.ddb"
@@ -119,20 +121,32 @@ Docker 컨테이너는 내부적으로 두 개의 포트를 사용합니다:
 
 ```haproxy
 frontend https_front
-    bind *:443 ssl crt /etc/haproxy/certs/portfolio.pem
+    bind *:443 ssl crt /path/to/cert.pem
 
-    # /mcp 경로는 MCP 서버로
-    acl is_mcp path_beg /mcp
-    use_backend mcp_back if is_mcp
+    acl padvisor     hdr(host) -i padvisor.example.com
+    acl is_mcp       path_beg /mcp
 
-    # 나머지는 대시보드로
-    default_backend dashboard_back
+    # /mcp 경로는 MCP 서버로, 나머지는 대시보드로
+    use_backend padvisor_mcp if padvisor is_mcp
+    use_backend padvisor     if padvisor
 
-backend dashboard_back
-    server portfolio 127.0.0.1:8501 check
+backend padvisor
+    option httpchk
+    compression algo gzip
+    compression type text/html text/plain text/css application/javascript application/json
+    http-check send meth GET uri /health ver HTTP/1.1 hdr Host padvisor.example.com
+    http-check expect status 200
+    balance roundrobin
+    default-server inter 5s fastinter 3s rise 3 fall 3
+    server web01 127.0.0.1:20012 check
 
-backend mcp_back
-    server mcp 127.0.0.1:8001 check
+backend padvisor_mcp
+    option httpchk
+    http-check send meth GET uri /health ver HTTP/1.1 hdr Host padvisor.example.com
+    http-check expect status 200
+    balance roundrobin
+    default-server inter 5s fastinter 3s rise 3 fall 3
+    server web01 127.0.0.1:20013 check
 ```
 
 ### Nginx 설정 예시
@@ -140,14 +154,14 @@ backend mcp_back
 ```nginx
 server {
     listen 443 ssl;
-    server_name portfolio.example.com;
+    server_name padvisor.example.com;
 
-    ssl_certificate     /etc/nginx/certs/portfolio.crt;
-    ssl_certificate_key /etc/nginx/certs/portfolio.key;
+    ssl_certificate     /etc/nginx/certs/cert.crt;
+    ssl_certificate_key /etc/nginx/certs/cert.key;
 
     # MCP 서버
     location /mcp {
-        proxy_pass http://127.0.0.1:8001;
+        proxy_pass http://127.0.0.1:20013;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -156,7 +170,7 @@ server {
 
     # 대시보드
     location / {
-        proxy_pass http://127.0.0.1:8501;
+        proxy_pass http://127.0.0.1:20012;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -173,7 +187,7 @@ server {
 
 ## MCP 클라이언트 설정
 
-Claude Desktop/Code에서:
+MCP 지원 AI 클라이언트 설정:
 
 ```json
 {

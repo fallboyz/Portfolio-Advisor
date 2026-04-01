@@ -245,8 +245,7 @@
                 var metaText = dateStr;
                 if (data.comments && data.comments.length > 0) {
                     var lastComment = data.comments[data.comments.length - 1];
-                    metaText = lastComment.date.substring(0, 16).replace("T", " ") + " / " +
-                        (lastComment.author === "system" ? "자동 분석" : lastComment.author);
+                    metaText = lastComment.date.substring(0, 16).replace("T", " ");
                 }
                 document.getElementById("latest-analysis-meta").textContent = metaText;
                 document.getElementById("latest-analysis").style.display = "block";

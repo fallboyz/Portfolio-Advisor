@@ -285,6 +285,75 @@ def fetch_treasury_3m(api_key: str, start: str | None = None) -> pd.DataFrame:
     return fetch_fred_series("DGS3MO", api_key, start)
 
 
+# ── Finnhub News ───────────────────────────────────────
+
+
+ASSET_KEYWORDS = {
+    "gold": ["gold", "bullion", "precious metal", "real rate", "real yield", "fed rate", "central bank gold"],
+    "silver": ["silver", "precious metal", "gold silver ratio"],
+    "equity": ["s&p", "nasdaq", "stock market", "earnings", "gdp", "employment", "wall street"],
+    "macro": ["fed", "interest rate", "inflation", "cpi", "treasury", "yield curve", "trade war", "tariff"],
+}
+
+
+def fetch_finnhub_news(api_key: str, category: str = "general", days: int = 7) -> list[dict]:
+    """Finnhub 시장 뉴스 수집. 센티먼트 스코어 포함."""
+    from datetime import datetime, timedelta
+
+    if not api_key:
+        return []
+
+    end = datetime.now()
+    start = end - timedelta(days=days)
+
+    try:
+        resp = requests.get(
+            "https://finnhub.io/api/v1/news",
+            params={
+                "category": category,
+                "minId": 0,
+                "token": api_key,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        articles = resp.json()
+    except Exception as e:
+        logger.error("Finnhub news fetch failed: %s", e)
+        return []
+
+    cutoff = start.timestamp()
+    results = []
+    for a in articles:
+        if a.get("datetime", 0) < cutoff:
+            continue
+        results.append({
+            "headline": a.get("headline", ""),
+            "summary": a.get("summary", ""),
+            "source": a.get("source", ""),
+            "datetime": a.get("datetime", 0),
+            "url": a.get("url", ""),
+            "related": a.get("related", ""),
+        })
+
+    return results
+
+
+def filter_news_by_asset(articles: list[dict], asset_type: str) -> list[dict]:
+    """자산 유형에 맞는 뉴스만 필터링."""
+    keywords = ASSET_KEYWORDS.get(asset_type, [])
+    if not keywords:
+        return articles
+
+    filtered = []
+    for a in articles:
+        text = (a.get("headline", "") + " " + a.get("summary", "")).lower()
+        if any(kw in text for kw in keywords):
+            filtered.append(a)
+
+    return filtered
+
+
 # ── Derived ─────────────────────────────────────────────────
 
 

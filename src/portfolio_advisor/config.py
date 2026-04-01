@@ -44,4 +44,8 @@ def load_config(path: str | Path | None = None) -> dict:
     if fred_key:
         config.setdefault("api_keys", {})["fred"] = fred_key
 
+    finnhub_key = os.environ.get("FINNHUB_API_KEY")
+    if finnhub_key:
+        config.setdefault("api_keys", {})["finnhub"] = finnhub_key
+
     return config

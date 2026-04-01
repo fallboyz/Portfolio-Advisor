@@ -1,5 +1,6 @@
 [api_keys]
 fred = ""  # .env 파일의 FRED_API_KEY 사용
+finnhub = ""  # .env 파일의 FINNHUB_API_KEY 사용
 
 [schedule]
 data_update = "0 3 * * *"

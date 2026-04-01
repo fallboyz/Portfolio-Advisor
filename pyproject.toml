@@ -1,6 +1,6 @@
 [project]
 name = "portfolio-advisor"
-version = "0.1.0"
+version = "1.0.0"
 description = "Investment portfolio ratio advisor - Real assets (Gold/Silver) vs ETF (S&P500/Nasdaq100) allocation based on multi-timeframe Z-Score model"
 requires-python = ">=3.13"
 dependencies = [
@@ -36,6 +36,4 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 
 [dependency-groups]
-dev = [
-    "pytest>=8.0,<9",
-]
+dev = ["pytest>=8.0,<9"]
