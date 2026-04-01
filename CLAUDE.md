@@ -20,7 +20,7 @@ src/portfolio_advisor/
     fetchers.py       - 데이터 수집 (yfinance, FRED, Shiller Excel, Macrotrends CSV)
   analysis/
     zscore.py         - Z-Score 계산 (50yr/10yr/5yr YoY, 가격위치, CAPE, GSR)
-    composite.py      - 복합 점수 (금, 은, S&P500, 나스닥, 그룹)
+    composite.py      - 복합 점수 (검증된 지표 기반, 자산별 가중치)
     signal.py         - 2단계 비율 조정 신호 + Drawdown 보정
   backtest/
     engine.py         - Walk-forward 백테스트 (look-ahead bias 방지)

@@ -57,6 +57,11 @@ vix = "^VIX"
 [fred_series]
 fed_funds = "FEDFUNDS"
 cpi = "CPIAUCSL"
+real_rate = "REAINTRATREARAT10Y"
+m2 = "M2SL"
+gdp = "GDP"
+treasury_10y = "DGS10"
+treasury_3m = "DGS3MO"
 
 [server]
 web_port = 8501
@@ -66,12 +71,29 @@ mcp_host = "0.0.0.0"
 [schedule]
 data_update = "0 3 * * *"
 
-[weights]
-w1_50y = 0.20
-w2_10y = 0.25
-w3_5y = 0.25
-w4_valuation = 0.20
-w5_gsr = 0.10
+[weights_gold]
+real_rate = 0.30
+m2_gold = 0.30
+price_position = 0.20
+return_10y = 0.20
+
+[weights_silver]
+real_rate = 0.25
+m2_gold = 0.25
+price_position = 0.15
+return_10y = 0.15
+gsr = 0.20
+
+[weights_sp500]
+cape = 0.35
+buffett = 0.25
+yield_curve = 0.15
+return_10y = 0.25
+
+[weights_ndx]
+return_10y = 0.40
+return_5y = 0.40
+price_position = 0.20
 
 [signals]
 strong_precious = -2.0

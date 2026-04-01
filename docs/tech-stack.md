@@ -30,7 +30,7 @@
 | 테이블 | 용도 |
 |--------|------|
 | prices | 자산별 일간/월간 가격 |
-| economic_indicators | CAPE, GSR, 금리, CPI 등 |
+| economic_indicators | CAPE, GSR, 실질금리, M2, GDP, 국채금리, M2/금, Buffett, Yield Curve 등 |
 | yoy_returns | 연간 변동률(%) |
 | zscores | 계산된 Z-Score |
 | composite_scores | 복합 점수 + 신호 (analyzed_at으로 하루 복수 분석 이력 보존) |

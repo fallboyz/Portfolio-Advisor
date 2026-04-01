@@ -49,12 +49,26 @@ CAPE 참고 수치:
 
 ## 경제 지표
 
-| 데이터 | 출처 | API |
-|--------|------|-----|
-| 미국 기준금리 (Fed Funds Rate) | FRED | FEDFUNDS |
-| 미국 CPI (소비자물가지수) | FRED | CPIAUCSL |
-| 달러 인덱스 (DXY) | yfinance | DX-Y.NYB |
-| VIX (변동성 지수) | yfinance | ^VIX |
+| 데이터 | 출처 | API | 용도 |
+|--------|------|-----|------|
+| 미국 기준금리 (Fed Funds Rate) | FRED | FEDFUNDS | 참조 |
+| 미국 CPI (소비자물가지수) | FRED | CPIAUCSL | 참조 |
+| 10년 실질금리 | FRED | REAINTRATREARAT10Y | 금/은 밸류에이션 (역상관) |
+| M2 통화량 | FRED | M2SL | M2/금 비율 계산 |
+| GDP | FRED | GDP | Buffett Indicator 계산 |
+| 10년 국채 금리 | FRED | DGS10 | Yield Curve 계산 |
+| 3개월 국채 금리 | FRED | DGS3MO | Yield Curve 계산 |
+| 달러 인덱스 (DXY) | yfinance | DX-Y.NYB | 참조 |
+| VIX (변동성 지수) | yfinance | ^VIX | 참조 |
+
+## 파생 지표 (시스템 자동 계산)
+
+| 지표 | 계산 방법 | 의미 |
+|------|---------|------|
+| GSR (금/은 비율) | 금 가격 / 은 가격 | 80 이상이면 은 저평가 |
+| M2/금 비율 | M2 통화량 / 금 가격 | 높을수록 금이 통화량 대비 저평가 |
+| Buffett Indicator | S&P500 / GDP | 높을수록 주식 과평가 (120% 이상 경고) |
+| Yield Curve | 10년 금리 - 3개월 금리 | 음수(역전) = 경기 둔화 신호 |
 
 ## 데이터 출처 URL
 
