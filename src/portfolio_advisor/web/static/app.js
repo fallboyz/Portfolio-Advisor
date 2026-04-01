@@ -225,8 +225,9 @@
                 var conclusionText = info.desc;
 
                 if (data.comments && data.comments.length > 0) {
-                    var fullText = data.comments.map(function (c) { return c.content; }).join("\n\n");
-                    var parsed = parseCommentSections(fullText);
+                    var lastComment = data.comments[data.comments.length - 1];
+                    var parsed = parseCommentSections(lastComment.content);
+                    if (parsed.data) dataLines = [parsed.data];
                     if (parsed.trend) trendText = parsed.trend;
                     if (parsed.conclusion) conclusionText = parsed.conclusion;
                 }
@@ -462,8 +463,8 @@
         var conclusionSection = "";
 
         if (data.comments && data.comments.length > 0) {
-            var fullText = data.comments.map(function (c) { return c.content; }).join("\n\n");
-            var parsed = parseCommentSections(fullText);
+            var lastComment = data.comments[data.comments.length - 1];
+            var parsed = parseCommentSections(lastComment.content);
             dataSection = parsed.data;
             trendSection = parsed.trend;
             conclusionSection = parsed.conclusion;
