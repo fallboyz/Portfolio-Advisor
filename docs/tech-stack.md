@@ -11,7 +11,7 @@
 | UI | FastAPI + Jinja2 | JSON API + HTML 단일 페이지 대시보드 |
 | AI 연동 | FastMCP (Streamable HTTP) | Claude 원격 데이터 조회 |
 | 설정 | config.toml + .env | API 키는 .env, 나머지 설정은 config.toml |
-| 스케줄러 | 컨테이너 내부 cron | 일 1회 자동 실행 |
+| 스케줄러 | 앱 내장 (threading) | 일 1회 자동 실행 (config.toml schedule) |
 | 배포 | Docker (HTTP only) | 리버스 프록시/HTTPS는 사용자 관리 |
 | 테스트 | pytest | 분석 로직 단위 테스트 |
 
@@ -33,6 +33,6 @@
 | economic_indicators | CAPE, GSR, 금리, CPI 등 |
 | yoy_returns | 연간 변동률(%) |
 | zscores | 계산된 Z-Score |
-| composite_scores | 복합 점수 + 신호 |
+| composite_scores | 복합 점수 + 신호 (analyzed_at으로 하루 복수 분석 이력 보존) |
 | comments | 분석 코멘트 |
 | data_sync_log | 데이터 동기화 상태 |

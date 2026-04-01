@@ -34,7 +34,7 @@ src/portfolio_advisor/
       style.css       - 스타일시트
       app.js          - Plotly.js 차트 렌더링 + 인터랙션
   scripts/
-    update_data.py    - 일일 파이프라인 (cron 대상)
+    update_data.py    - 일일 파이프라인 (내장 스케줄러 + 수동 실행)
 ```
 
 ## Data Flow
@@ -52,7 +52,7 @@ fetchers → store (prices, indicators)
 
 - 2단계 비율 조정: 실물 자산(금/은) vs ETF(S&P/나스닥) 그룹 + 내부 비율
 - DuckDB 단일 파일: 모든 데이터 저장. 읽기/쓰기 분리 (update만 write)
-- API 키는 .env 파일로 관리 (FRED_API_KEY). config.toml은 .env가 없을 때 fallback
+- API 키는 .env 파일의 FRED_API_KEY가 config.toml 값을 오버라이드
 - FastAPI + Jinja2 + Plotly.js: 단일 페이지 대시보드, JSON API 제공
 - Docker HTTP only: 인프라(HTTPS, 도메인)는 사용자 관리
 
