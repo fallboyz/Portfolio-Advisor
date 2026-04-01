@@ -6,7 +6,7 @@
 | 문서 | 내용 |
 |------|------|
 | [docs/overview.md](docs/overview.md) | 프로젝트 개요, 핵심 원칙, 2단계 비율 구조 |
-| [docs/analysis-model.md](docs/analysis-model.md) | Z-Score 모델 수식, 복합 점수, 신호 생성 |
+| [docs/analysis-model.md](docs/analysis-model.md) | 분석 모델, 지표 선정 근거, 가중치, 복합 점수 공식 |
 | [docs/data-sources.md](docs/data-sources.md) | 데이터 소스, API, 출처 |
 | [docs/tech-stack.md](docs/tech-stack.md) | 기술 스택, DB 스키마, MCP 도구 |
 | [docs/deployment.md](docs/deployment.md) | Docker 배포, config 설정, MCP 연결 |
