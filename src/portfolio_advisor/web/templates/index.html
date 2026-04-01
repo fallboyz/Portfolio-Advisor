@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Advisor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-title">Portfolio Advisor</div>
+            <div class="header-desc">
+                실물 자산(금/은)과 ETF(S&amp;P500/나스닥100)의 역사적 데이터를 분석하여,
+                현재 기준으로 어느 쪽에 투자 비중을 더 둘지 어드바이스하는 시스템입니다.
+            </div>
+        </header>
+
+        <!-- Signal Card -->
+        <div id="signal-card" class="signal-card" style="display:none;">
+            <h1 id="signal-label"></h1>
+            <div id="signal-desc" class="desc"></div>
+            <div class="allocation">
+                <span class="precious">실물 자산 <span id="precious-pct"></span>%</span>
+                <span class="divider">(<span id="gold-ratio"></span>)</span>
+                <span class="divider">|</span>
+                <span class="etf">ETF <span id="etf-pct"></span>%</span>
+                <span class="divider">(<span id="etf-ratio"></span>)</span>
+            </div>
+        </div>
+
+        <!-- Latest Analysis -->
+        <div id="latest-analysis" style="display:none;">
+            <div class="section-header">분석 요약</div>
+            <div id="latest-analysis-meta" class="comment-meta"></div>
+            <div class="analysis-grid">
+                <div class="analysis-subsection">
+                    <h3>데이터 분석</h3>
+                    <div id="latest-data" class="content"></div>
+                </div>
+                <div class="analysis-subsection">
+                    <h3>시장 동향</h3>
+                    <div id="latest-trend" class="content"></div>
+                </div>
+                <div class="analysis-subsection">
+                    <h3>종합 판단</h3>
+                    <div id="latest-conclusion" class="content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- No Data -->
+        <div id="no-data" class="no-data" style="display:none;">
+            분석 데이터가 없습니다. 먼저 업데이트를 실행해주세요:<br>
+            <code>uv run portfolio-update</code>
+        </div>
+
+        <!-- Metrics -->
+        <div id="metrics-row" class="metric-row" style="display:none;">
+            <div class="metric-box">
+                <div class="label">그룹 R 점수</div>
+                <div class="value" id="r-group-value"></div>
+                <div class="hint">음수 = 실물 자산 유리 / 양수 = ETF 유리</div>
+            </div>
+            <div class="metric-box">
+                <div class="label">실물 자산 점수</div>
+                <div class="value" id="precious-value"></div>
+                <div class="hint" id="precious-hint"></div>
+            </div>
+            <div class="metric-box">
+                <div class="label">ETF 점수</div>
+                <div class="value" id="etf-value"></div>
+                <div class="hint" id="etf-hint"></div>
+            </div>
+        </div>
+
+        <!-- Gauge -->
+        <div id="gauge-chart"></div>
+
+        <!-- Price Charts -->
+        <div id="price-section" style="display:none;">
+            <div class="section-header">가격 현황</div>
+            <div class="guide-box">
+                가격 추이. 기간 버튼으로 범위 변경.
+            </div>
+            <div class="period-buttons">
+                <button class="period-btn active" data-years="1">1년</button>
+                <button class="period-btn" data-years="5">5년</button>
+                <button class="period-btn" data-years="10">10년</button>
+                <button class="period-btn" data-years="0">전체</button>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-cell">
+                    <div class="chart-title">은 (Silver)</div>
+                    <div id="chart-silver"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">금 (Gold) <span class="ref">참고</span></div>
+                    <div id="chart-gold"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">S&amp;P 500</div>
+                    <div id="chart-sp500"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">나스닥 100 <span class="ref">참고</span></div>
+                    <div id="chart-ndx"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GSR -->
+        <div id="gsr-section" style="display:none;">
+            <div class="section-header">금/은 비율</div>
+            <div class="guide-box">
+                금 1온스 / 은 1온스 가격 비율.
+                <b>80 이상</b>(녹색 점선) = 은이 금 대비 저평가.
+                <b>50 이하</b>(빨간 점선) = 은이 금 대비 고평가. 장기 평균 약 60~70.
+            </div>
+            <div id="chart-gsr"></div>
+        </div>
+
+        <!-- Z-Score Heatmap -->
+        <div id="zscore-section" style="display:none;">
+            <div class="section-header">Z-Score 분석</div>
+            <div class="guide-box">
+                각 지표가 역사적 평균 대비 어디에 있는지 한눈에 보는 표.
+                <b>파란색</b> = 저평가. <b>빨간색</b> = 고평가.
+                <b>-2 이하</b>면 역사적으로 매우 낮은 수준, <b>+2 이상</b>이면 매우 높은 수준.
+            </div>
+            <div id="chart-zscore"></div>
+        </div>
+
+        <!-- Composite History -->
+        <div id="composite-section" style="display:none;">
+            <div class="section-header">복합 점수 추이</div>
+            <div class="guide-box">
+                <b>검은 굵은선 (R 점수)</b>이 핵심.
+                녹색 배경(R &lt; -1) = 실물 자산 유리, 빨간 배경(R &gt; +1) = ETF 유리.
+            </div>
+            <div id="chart-composite"></div>
+        </div>
+
+        <!-- Analysis by Date -->
+        <div id="analysis-section" style="display:none;">
+            <div class="section-header">날짜별 분석</div>
+            <div class="date-selector">
+                <select id="analysis-date-select">
+                    <option value="">날짜 선택...</option>
+                </select>
+            </div>
+            <div id="analysis-detail" style="display:none;">
+                <div class="analysis-subsection">
+                    <h3>데이터 분석</h3>
+                    <div id="analysis-data"></div>
+                </div>
+                <div class="analysis-subsection">
+                    <h3>시장 동향</h3>
+                    <div id="analysis-trend"></div>
+                </div>
+                <div class="analysis-subsection">
+                    <h3>종합 판단</h3>
+                    <div id="analysis-conclusion"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            &copy; 2026 Portfolio Advisor. Built by Coulson.
+        </footer>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>

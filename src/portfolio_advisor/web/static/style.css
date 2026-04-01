@@ -1,0 +1,350 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f6f8;
+    color: #222;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+/* Header */
+.header {
+    border-bottom: 2px solid #093687;
+    padding-bottom: 0.8rem;
+    margin-bottom: 1.2rem;
+}
+
+.header-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #093687;
+    letter-spacing: -0.5px;
+}
+
+.header-desc {
+    font-size: 0.85rem;
+    color: #dc2626;
+    margin-top: 0.3rem;
+    line-height: 1.5;
+}
+
+/* Signal Card */
+.signal-card {
+    background: #093687;
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    color: white;
+    margin-bottom: 1.2rem;
+}
+
+.signal-card h1 {
+    font-size: 1.8rem;
+    margin: 0 0 0.4rem 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.signal-card .desc {
+    font-size: 0.95rem;
+    opacity: 0.85;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.signal-card .allocation {
+    display: inline-flex;
+    gap: 0.6rem;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.signal-card .allocation .precious { color: #ddd; }
+.signal-card .allocation .etf { color: #7eb8ff; }
+.signal-card .allocation .divider { opacity: 0.4; }
+
+/* No Data */
+.no-data {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #856404;
+    font-size: 0.95rem;
+}
+
+.no-data code {
+    display: inline-block;
+    margin-top: 0.5rem;
+    background: #f8f9fa;
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* Metrics */
+.metric-row {
+    display: flex;
+    gap: 0.8rem;
+    margin: 0.8rem 0 1.2rem 0;
+}
+
+.metric-box {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 1.2rem 1rem;
+    text-align: center;
+}
+
+.metric-box .label {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.metric-box .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.metric-box .hint {
+    font-size: 0.7rem;
+    color: #aaa;
+    margin-top: 0.2rem;
+}
+
+/* Chart containers - full width */
+#chart-gsr,
+#chart-zscore,
+#chart-composite,
+#gauge-chart {
+    width: 100%;
+    min-width: 0;
+}
+
+.js-plotly-plot,
+.plot-container {
+    width: 100% !important;
+}
+
+/* Section Header */
+.section-header {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #222;
+    margin: 2rem 0 0.3rem 0;
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    letter-spacing: -0.3px;
+}
+
+.section-header::before {
+    content: '';
+    width: 3px;
+    height: 1.1rem;
+    background: #093687;
+    border-radius: 2px;
+}
+
+/* Guide Box */
+.guide-box {
+    background: #f7f8fa;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin: 0.3rem 0 1rem 0;
+    font-size: 0.82rem;
+    color: #666;
+    line-height: 1.65;
+    border: 1px solid #eee;
+}
+
+.guide-box b { color: #333; }
+
+/* Period Buttons */
+.period-buttons {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.period-btn {
+    padding: 0.4rem 1rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.period-btn:hover {
+    border-color: #093687;
+    color: #093687;
+}
+
+.period-btn.active {
+    background: #093687;
+    color: #fff;
+    border-color: #093687;
+}
+
+/* Chart Grid */
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.chart-cell {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.chart-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.chart-title .ref {
+    font-size: 0.75rem;
+    color: #999;
+    font-weight: 400;
+}
+
+/* Date Selector */
+.date-selector {
+    margin-bottom: 1rem;
+}
+
+.date-selector select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: #fff;
+    min-width: 200px;
+}
+
+/* Analysis Detail */
+.analysis-subsection {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.analysis-subsection h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #093687;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #eee;
+}
+
+.analysis-subsection .content {
+    font-size: 0.88rem;
+    color: #444;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+/* Comment Meta */
+.comment-meta {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+/* Footer */
+.footer {
+    margin-top: 3rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #999;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem 0.8rem;
+    }
+
+    .signal-card {
+        padding: 1.3rem 1.2rem;
+    }
+
+    .signal-card h1 {
+        font-size: 1.4rem;
+    }
+
+    .signal-card .desc {
+        font-size: 0.85rem;
+    }
+
+    .signal-card .allocation {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .metric-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .metric-box {
+        padding: 0.9rem 0.8rem;
+    }
+
+    .metric-box .value {
+        font-size: 1.3rem;
+    }
+
+    .section-header {
+        font-size: 1.05rem;
+        margin-top: 1.5rem;
+    }
+
+    .guide-box {
+        font-size: 0.78rem;
+        padding: 0.7rem 0.8rem;
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .period-buttons {
+        flex-wrap: wrap;
+    }
+}

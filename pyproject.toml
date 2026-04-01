@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Investment portfolio ratio advisor - Real assets (Gold/Silver) vs ETF (S&P500/Nasdaq100) allocation based on multi-timeframe Z-Score model"
 requires-python = ">=3.13"
 dependencies = [
-    "streamlit>=1.43,<2",
-    "plotly>=6.0,<7",
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
+    "jinja2>=3.1,<4",
     "duckdb>=1.2,<2",
     "pandas>=2.2,<4",
     "numpy>=2.2,<3",
@@ -21,6 +22,7 @@ dependencies = [
 [project.scripts]
 portfolio-update = "portfolio_advisor.scripts.update_data:main"
 portfolio-mcp = "portfolio_advisor.mcp.server:main"
+portfolio-web = "portfolio_advisor.web.app:main"
 
 [build-system]
 requires = ["hatchling"]

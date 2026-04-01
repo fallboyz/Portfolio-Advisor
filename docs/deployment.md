@@ -6,17 +6,16 @@
 docker compose up -d
 ```
 
-- 8501: Streamlit 대시보드
+- 8501: 웹 대시보드 (FastAPI)
 - 8001: MCP 서버
-- cron: 매일 새벽 3시 데이터 수집 + 분석 자동 실행
+- 스케줄러 내장: 매일 새벽 3시 데이터 수집 + 분석 자동 실행 (config.toml의 `schedule.data_update`)
 - HTTP만 노출. 리버스 프록시/HTTPS/도메인은 별도 처리.
 
 ## 컨테이너 구성
 
-하나의 컨테이너에서 3개 프로세스 실행:
-1. cron 데몬 (백그라운드)
-2. MCP 서버 (백그라운드)
-3. Streamlit (포그라운드, PID 1)
+하나의 컨테이너에서 2개 프로세스 실행:
+1. MCP 서버 (백그라운드)
+2. 웹 대시보드 - FastAPI (포그라운드, PID 1, 스케줄러 내장)
 
 ## 환경 변수 (.env)
 
@@ -60,7 +59,7 @@ fed_funds = "FEDFUNDS"
 cpi = "CPIAUCSL"
 
 [server]
-streamlit_port = 8501
+web_port = 8501
 mcp_port = 8001
 mcp_host = "0.0.0.0"
 
@@ -89,7 +88,7 @@ silver_rally_threshold = 100
 ## 리버스 프록시 설정 (HAProxy 예시)
 
 Docker 컨테이너는 내부적으로 두 개의 포트를 사용합니다:
-- `8501`: Streamlit 대시보드
+- `8501`: 웹 대시보드 (FastAPI)
 - `8001`: MCP 서버
 
 외부에는 443(HTTPS) 하나만 노출하고, 경로 기반으로 내부 포트에 라우팅합니다.

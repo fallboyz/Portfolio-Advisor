@@ -22,7 +22,14 @@ class Store:
 
     # ── Schema ──────────────────────────────────────────────
 
+    def _migrate_composite_scores(self):
+        try:
+            self.conn.execute("SELECT analyzed_at FROM composite_scores LIMIT 0")
+        except (duckdb.BinderException, duckdb.CatalogException):
+            self.conn.execute("DROP TABLE IF EXISTS composite_scores")
+
     def _ensure_schema(self):
+        self._migrate_composite_scores()
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS prices (
                 date        DATE NOT NULL,
@@ -74,6 +81,7 @@ class Store:
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS composite_scores (
                 calc_date       DATE NOT NULL,
+                analyzed_at     TIMESTAMP NOT NULL DEFAULT current_timestamp,
                 s_gold          DOUBLE DEFAULT 0,
                 s_silver        DOUBLE NOT NULL,
                 s_sp500         DOUBLE DEFAULT 0,
@@ -93,8 +101,7 @@ class Store:
                 dd_etf          DOUBLE,
                 dd_correction   DOUBLE DEFAULT 0,
                 weights_hash    VARCHAR,
-                updated_at      TIMESTAMP DEFAULT current_timestamp,
-                PRIMARY KEY (calc_date)
+                PRIMARY KEY (calc_date, analyzed_at)
             )
         """)
         self.conn.execute("""
@@ -121,61 +128,48 @@ class Store:
 
     # ── Write methods ───────────────────────────────────────
 
-    def upsert_prices(self, df: pd.DataFrame) -> int:
+    def _exec_with_temp(self, view_name: str, df: pd.DataFrame, sql: str) -> int:
         if df.empty:
             return 0
-        self.conn.register("_tmp_prices", df)
-        self.conn.execute("""
+        self.conn.register(view_name, df)
+        try:
+            self.conn.execute(sql)
+        finally:
+            self.conn.unregister(view_name)
+        return len(df)
+
+    def upsert_prices(self, df: pd.DataFrame) -> int:
+        return self._exec_with_temp("_tmp_prices", df, """
             INSERT OR REPLACE INTO prices (date, symbol, close, open, high, low, source, is_real)
             SELECT date, symbol, close, open, high, low, source, is_real
             FROM _tmp_prices
         """)
-        self.conn.unregister("_tmp_prices")
-        return len(df)
 
     def upsert_economic_indicators(self, df: pd.DataFrame) -> int:
-        if df.empty:
-            return 0
-        self.conn.register("_tmp_indicators", df)
-        self.conn.execute("""
+        return self._exec_with_temp("_tmp_indicators", df, """
             INSERT OR REPLACE INTO economic_indicators (date, indicator, value, source)
             SELECT date, indicator, value, source
             FROM _tmp_indicators
         """)
-        self.conn.unregister("_tmp_indicators")
-        return len(df)
 
     def upsert_yoy_returns(self, df: pd.DataFrame) -> int:
-        if df.empty:
-            return 0
-        self.conn.register("_tmp_yoy", df)
-        self.conn.execute("""
+        return self._exec_with_temp("_tmp_yoy", df, """
             INSERT OR REPLACE INTO yoy_returns (date, symbol, yoy_pct, period)
             SELECT date, symbol, yoy_pct, period
             FROM _tmp_yoy
         """)
-        self.conn.unregister("_tmp_yoy")
-        return len(df)
 
     def upsert_zscores(self, df: pd.DataFrame) -> int:
-        if df.empty:
-            return 0
-        self.conn.register("_tmp_zscores", df)
-        self.conn.execute("""
+        return self._exec_with_temp("_tmp_zscores", df, """
             INSERT OR REPLACE INTO zscores
                 (calc_date, symbol, metric, window_years, zscore, mean_val, stdev_val, current_val)
             SELECT calc_date, symbol, metric, window_years, zscore, mean_val, stdev_val, current_val
             FROM _tmp_zscores
         """)
-        self.conn.unregister("_tmp_zscores")
-        return len(df)
 
-    def upsert_composite_scores(self, df: pd.DataFrame) -> int:
-        if df.empty:
-            return 0
-        self.conn.register("_tmp_composite", df)
-        self.conn.execute("""
-            INSERT OR REPLACE INTO composite_scores
+    def insert_composite_scores(self, df: pd.DataFrame) -> int:
+        return self._exec_with_temp("_tmp_composite", df, """
+            INSERT INTO composite_scores
                 (calc_date, s_gold, s_silver, s_sp500, s_ndx,
                  s_precious, s_etf, r_group, r_precious, r_etf_internal,
                  signal_label, precious_pct, gold_pct, silver_pct, sp500_pct, ndx_pct,
@@ -186,8 +180,6 @@ class Store:
                    dd_silver, dd_etf, dd_correction, weights_hash
             FROM _tmp_composite
         """)
-        self.conn.unregister("_tmp_composite")
-        return len(df)
 
     def add_comment(self, comment_dt: datetime, content: str, author: str = "claude") -> int:
         result = self.conn.execute(
@@ -279,7 +271,7 @@ class Store:
         result = self.conn.execute(
             """
             SELECT * FROM composite_scores
-            ORDER BY calc_date DESC LIMIT 1
+            ORDER BY analyzed_at DESC, calc_date DESC LIMIT 1
             """
         ).fetchdf()
         if result.empty:
@@ -294,7 +286,7 @@ class Store:
         if start:
             query += " WHERE calc_date >= ?"
             params.append(start)
-        query += " ORDER BY calc_date"
+        query += " ORDER BY analyzed_at, calc_date"
         return self.conn.execute(query, params).fetchdf()
 
     def get_comments(
@@ -308,6 +300,51 @@ class Store:
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
         return self.conn.execute(query, params).fetchdf()
+
+    def get_composite_by_date(
+        self, calc_date: date, analyzed_at: datetime | None = None
+    ) -> dict | None:
+        if analyzed_at:
+            result = self.conn.execute(
+                "SELECT * FROM composite_scores WHERE calc_date = ? AND analyzed_at = ?",
+                [calc_date, analyzed_at],
+            ).fetchdf()
+        else:
+            result = self.conn.execute(
+                "SELECT * FROM composite_scores WHERE calc_date = ? ORDER BY analyzed_at DESC LIMIT 1",
+                [calc_date],
+            ).fetchdf()
+        if result.empty:
+            return None
+        return result.iloc[0].to_dict()
+
+    def get_comments_by_date(self, target_date: date) -> pd.DataFrame:
+        return self.conn.execute(
+            "SELECT * FROM comments WHERE CAST(date AS DATE) = ? ORDER BY created_at",
+            [target_date],
+        ).fetchdf()
+
+    def get_zscores_by_date(self, calc_date: date) -> pd.DataFrame:
+        return self.conn.execute(
+            "SELECT * FROM zscores WHERE calc_date = ? ORDER BY symbol, metric",
+            [calc_date],
+        ).fetchdf()
+
+    def get_composite_dates(self) -> list[dict]:
+        result = self.conn.execute(
+            "SELECT calc_date, analyzed_at FROM composite_scores ORDER BY analyzed_at DESC, calc_date DESC"
+        ).fetchdf()
+        if result.empty:
+            return []
+        entries = []
+        for _, row in result.iterrows():
+            cd = row["calc_date"]
+            at = row["analyzed_at"]
+            entries.append({
+                "calc_date": cd.date() if hasattr(cd, "date") else cd,
+                "analyzed_at": at.isoformat() if hasattr(at, "isoformat") else str(at),
+            })
+        return entries
 
     def get_sync_status(self) -> pd.DataFrame:
         return self.conn.execute(

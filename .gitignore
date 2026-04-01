@@ -13,4 +13,3 @@ data/raw/*.xls
 .env
 .claude/
 .playwright-mcp/
-.streamlit/

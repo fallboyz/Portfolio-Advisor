@@ -26,7 +26,7 @@ def tmp_config() -> dict:
             "vix": "^VIX",
         },
         "fred_series": {"fed_funds": "FEDFUNDS", "cpi": "CPIAUCSL"},
-        "server": {"streamlit_port": 8501, "mcp_port": 8001, "mcp_host": "0.0.0.0"},
+        "server": {"web_port": 8501, "mcp_port": 8001, "mcp_host": "0.0.0.0"},
         "weights": {
             "w1_50y": 0.20,
             "w2_10y": 0.25,

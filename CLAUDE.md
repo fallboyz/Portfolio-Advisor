@@ -5,7 +5,7 @@
 ```bash
 uv sync                                          # 의존성 설치
 uv run portfolio-update                          # 데이터 수집 + 분석 실행
-uv run streamlit run src/portfolio_advisor/ui/app.py  # 대시보드 실행
+uv run portfolio-web                             # 대시보드 실행 (FastAPI, http://localhost:8501)
 uv run portfolio-mcp                             # MCP 서버 실행
 uv run pytest -v                                 # 테스트
 ```
@@ -26,9 +26,13 @@ src/portfolio_advisor/
     engine.py         - Walk-forward 백테스트 (look-ahead bias 방지)
   mcp/
     server.py         - FastMCP Streamable HTTP (5개 도구)
-  ui/
-    app.py            - Streamlit 메인 (단일 페이지)
-    charts.py         - Plotly 차트 함수
+  web/
+    app.py            - FastAPI + Jinja2 대시보드 (단일 페이지)
+    templates/
+      index.html      - HTML 템플릿
+    static/
+      style.css       - 스타일시트
+      app.js          - Plotly.js 차트 렌더링 + 인터랙션
   scripts/
     update_data.py    - 일일 파이프라인 (cron 대상)
 ```
@@ -49,7 +53,7 @@ fetchers → store (prices, indicators)
 - 2단계 비율 조정: 실물 자산(금/은) vs ETF(S&P/나스닥) 그룹 + 내부 비율
 - DuckDB 단일 파일: 모든 데이터 저장. 읽기/쓰기 분리 (update만 write)
 - API 키는 .env 파일로 관리 (FRED_API_KEY). config.toml은 .env가 없을 때 fallback
-- Streamlit 단일 페이지: pages/ 폴더 없음
+- FastAPI + Jinja2 + Plotly.js: 단일 페이지 대시보드, JSON API 제공
 - Docker HTTP only: 인프라(HTTPS, 도메인)는 사용자 관리
 
 ## Testing
@@ -63,4 +67,4 @@ fetchers → store (prices, indicators)
 - 한국어 UI (대시보드, 코멘트, 신호 라벨)
 - Pretendard 폰트
 - 업비트 스타일 디자인 (단정, 깔끔, 모바일 반응형)
-- Plotly 차트: 기본 1년 범위, modebar 세로 배치
+- Plotly.js 차트: 기본 1년 범위, modebar 세로 배치

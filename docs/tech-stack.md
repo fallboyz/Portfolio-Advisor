@@ -7,8 +7,8 @@
 | 데이터 수집 | yfinance, fredapi, openpyxl, xlrd | 무료 API |
 | 데이터 저장 | DuckDB (단일 파일) | 컬럼형 분석 DB |
 | 분석/계산 | pandas + numpy | 시계열 처리 표준 |
-| 시각화 | Plotly | 인터랙티브 차트 |
-| UI | Streamlit | 최소 코드 대시보드 |
+| 시각화 | Plotly.js (CDN) | 인터랙티브 차트 |
+| UI | FastAPI + Jinja2 | JSON API + HTML 단일 페이지 대시보드 |
 | AI 연동 | FastMCP (Streamable HTTP) | Claude 원격 데이터 조회 |
 | 설정 | config.toml + .env | API 키는 .env, 나머지 설정은 config.toml |
 | 스케줄러 | 컨테이너 내부 cron | 일 1회 자동 실행 |

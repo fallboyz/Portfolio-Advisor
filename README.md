@@ -129,7 +129,7 @@ Docker 없이 직접 실행하는 경우:
 ```bash
 uv sync                                                # 의존성 설치
 uv run portfolio-update                                # 데이터 수집 및 분석
-uv run streamlit run src/portfolio_advisor/ui/app.py   # 대시보드
+uv run portfolio-web                                   # 대시보드 (http://localhost:8501)
 uv run portfolio-mcp                                   # MCP 서버 (별도 터미널)
 uv run pytest -v                                       # 테스트
 ```

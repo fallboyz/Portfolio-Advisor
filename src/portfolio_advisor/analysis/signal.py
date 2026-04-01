@@ -101,19 +101,26 @@ def generate_group_signal(r_group: float, thresholds: dict) -> dict:
 
 
 def generate_comment(result: dict) -> str:
-    """한국어 분석 코멘트 생성."""
+    """한국어 분석 코멘트 생성. 3섹션 포맷 (데이터 분석 / 시장 동향 / 종합 판단)."""
     info = SIGNAL_KO.get(result["signal"]["label"], SIGNAL_KO["neutral"])
     precious_pct = result["signal"]["precious_pct"]
     etf_pct = 100 - precious_pct
+    calc_date = result["calc_date"]
 
     lines = []
-    lines.append(f"[{info['label']}]")
-    lines.append(f"  {info['desc']}")
+    lines.append(f"[{calc_date} {info['label']} - 실물 {precious_pct}% / ETF {etf_pct}%]")
     lines.append("")
-    lines.append(f"  실물 자산 {precious_pct}% (금 {result['gold_pct']}% / 은 {result['silver_pct']}%)")
-    lines.append(f"  ETF {etf_pct}% (S&P {result['sp500_pct']}% / 나스닥 {result['ndx_pct']}%)")
+    lines.append("데이터 분석:")
+    lines.append(f"- 비율: 실물 자산 {precious_pct}% (금 {result['gold_pct']}% / 은 {result['silver_pct']}%) | ETF {etf_pct}% (S&P {result['sp500_pct']}% / 나스닥 {result['ndx_pct']}%)")
+    lines.append(f"- 그룹 R={result['r_group']:+.2f} / 실물 점수={result['s_precious']:.2f} / ETF 점수={result['s_etf']:.2f}")
+    lines.append(f"- 금={result['s_gold']:.2f} / 은={result['s_silver']:.2f} / S&P={result['s_sp500']:.2f} / 나스닥={result['s_ndx']:.2f}")
+    lines.append(f"- 은 낙폭={result['dd_silver']:.1f}% / ETF 낙폭={result['dd_etf']:.1f}%")
     lines.append("")
-    lines.append(f"  그룹 R={result['r_group']:+.2f} / 실물 자산 점수={result['s_precious']:.2f} / ETF 점수={result['s_etf']:.2f}")
+    lines.append("시장 동향:")
+    lines.append("- (MCP Claude 분석으로 채워짐)")
+    lines.append("")
+    lines.append("종합 판단:")
+    lines.append(f"- {info['desc']}")
 
     return "\n".join(lines)
 
@@ -212,7 +219,7 @@ def compute_full_signal(
         "dd_correction": dd_correction,
         "weights_hash": weights_hash,
     }])
-    store.upsert_composite_scores(composite_df)
+    store.insert_composite_scores(composite_df)
 
     result = {
         "calc_date": calc_date,

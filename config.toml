@@ -24,7 +24,7 @@ fed_funds = "FEDFUNDS"
 cpi = "CPIAUCSL"
 
 [server]
-streamlit_port = 8501
+web_port = 8501
 mcp_port = 8001
 mcp_host = "0.0.0.0"
 

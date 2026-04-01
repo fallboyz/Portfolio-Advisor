@@ -224,27 +224,28 @@ class TestYoyReturns:
         assert len(result) == 2
 
 
-class TestCompositeScores:
-    def _make_composite_row(self, calc_date, **overrides):
-        row = {
-            "calc_date": calc_date,
-            "s_gold": 0.0, "s_silver": -0.5, "s_sp500": 0.3, "s_ndx": 0.1,
-            "s_precious": -0.25, "s_etf": 0.24,
-            "r_group": -0.49, "r_precious": 0.5, "r_etf_internal": 0.2,
-            "signal_label": "neutral", "precious_pct": 50,
-            "gold_pct": 50, "silver_pct": 50, "sp500_pct": 50, "ndx_pct": 50,
-            "dd_silver": -10.0, "dd_etf": -5.0, "dd_correction": 0.0,
-            "weights_hash": "abc123",
-        }
-        row.update(overrides)
-        return row
+def _make_composite_row(calc_date, **overrides):
+    row = {
+        "calc_date": calc_date,
+        "s_gold": 0.0, "s_silver": -0.5, "s_sp500": 0.3, "s_ndx": 0.1,
+        "s_precious": -0.25, "s_etf": 0.24,
+        "r_group": -0.49, "r_precious": 0.5, "r_etf_internal": 0.2,
+        "signal_label": "neutral", "precious_pct": 50,
+        "gold_pct": 50, "silver_pct": 50, "sp500_pct": 50, "ndx_pct": 50,
+        "dd_silver": -10.0, "dd_etf": -5.0, "dd_correction": 0.0,
+        "weights_hash": "abc123",
+    }
+    row.update(overrides)
+    return row
 
+
+class TestCompositeScores:
     def test_upsert_and_latest(self, store: Store):
         df = pd.DataFrame([
-            self._make_composite_row(date(2024, 1, 31), signal_label="neutral"),
-            self._make_composite_row(date(2024, 2, 29), signal_label="strong_precious", r_group=-2.2),
+            _make_composite_row(date(2024, 1, 31), signal_label="neutral"),
+            _make_composite_row(date(2024, 2, 29), signal_label="strong_precious", r_group=-2.2),
         ])
-        store.upsert_composite_scores(df)
+        store.insert_composite_scores(df)
 
         latest = store.get_latest_composite()
         assert latest is not None
@@ -252,11 +253,66 @@ class TestCompositeScores:
         assert latest["r_group"] == pytest.approx(-2.2)
 
     def test_composite_history(self, store: Store):
-        df = pd.DataFrame([self._make_composite_row(date(2024, 1, 31))])
-        store.upsert_composite_scores(df)
+        df = pd.DataFrame([_make_composite_row(date(2024, 1, 31))])
+        store.insert_composite_scores(df)
 
         history = store.get_composite_history()
         assert len(history) == 1
+
+
+class TestDateQueries:
+    def test_get_composite_by_date(self, store: Store):
+        df = pd.DataFrame([
+            _make_composite_row(date(2024, 1, 31), signal_label="neutral"),
+            _make_composite_row(date(2024, 2, 29), signal_label="strong_precious"),
+        ])
+        store.insert_composite_scores(df)
+
+        result = store.get_composite_by_date(date(2024, 1, 31))
+        assert result is not None
+        assert result["signal_label"] == "neutral"
+
+        assert store.get_composite_by_date(date(2099, 1, 1)) is None
+
+    def test_get_composite_dates(self, store: Store):
+        df = pd.DataFrame([
+            _make_composite_row(date(2024, 1, 31)),
+            _make_composite_row(date(2024, 2, 29)),
+            _make_composite_row(date(2024, 3, 31)),
+        ])
+        store.insert_composite_scores(df)
+
+        dates = store.get_composite_dates()
+        assert len(dates) == 3
+        assert dates[0]["calc_date"] == date(2024, 3, 31)  # DESC order
+        assert "analyzed_at" in dates[0]
+
+    def test_get_zscores_by_date(self, store: Store):
+        zdf = pd.DataFrame([
+            {"calc_date": date(2024, 1, 31), "symbol": "SILVER", "metric": "yoy_50y",
+             "window_years": 50, "zscore": -1.2, "mean_val": 5.0, "stdev_val": 10.0, "current_val": -7.0},
+            {"calc_date": date(2024, 1, 31), "symbol": "GOLD", "metric": "yoy_50y",
+             "window_years": 50, "zscore": 0.5, "mean_val": 8.0, "stdev_val": 12.0, "current_val": 14.0},
+            {"calc_date": date(2024, 2, 29), "symbol": "SILVER", "metric": "yoy_50y",
+             "window_years": 50, "zscore": -0.8, "mean_val": 5.0, "stdev_val": 10.0, "current_val": -3.0},
+        ])
+        store.upsert_zscores(zdf)
+
+        result = store.get_zscores_by_date(date(2024, 1, 31))
+        assert len(result) == 2
+
+        result2 = store.get_zscores_by_date(date(2099, 1, 1))
+        assert len(result2) == 0
+
+    def test_get_comments_by_date(self, store: Store):
+        from datetime import datetime
+        store.add_comment(datetime(2024, 3, 30, 10, 0), "Comment A")
+        store.add_comment(datetime(2024, 3, 30, 15, 0), "Comment B")
+        store.add_comment(datetime(2024, 3, 31, 9, 0), "Comment C")
+
+        result = store.get_comments_by_date(date(2024, 3, 30))
+        assert len(result) == 2
+        assert result.iloc[0]["content"] == "Comment A"
 
 
 class TestComments:

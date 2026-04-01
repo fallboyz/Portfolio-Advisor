@@ -2,8 +2,8 @@ services:
   portfolio-advisor:
     build: .
     ports:
-      - "8501:8501"
-      - "8001:8001"
+      - "20012:8501"
+      - "20013:8001"
     volumes:
       - ./data:/app/data
       - ./config.toml:/app/config.toml
