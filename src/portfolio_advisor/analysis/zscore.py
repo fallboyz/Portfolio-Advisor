@@ -121,51 +121,40 @@ def zscore_price_position(
 
 
 def zscore_cape(cape_series: pd.Series, current_cape: float) -> dict:
-    """Z-Score of current CAPE vs full historical distribution."""
-    if len(cape_series) < MIN_DATA_POINTS:
-        return _empty_zscore(current_cape, 0)
-
-    mean = float(cape_series.mean())
-    stdev = float(cape_series.std(ddof=1))
-
-    if stdev == 0:
-        return _empty_zscore(current_cape, 0)
-
-    z = (current_cape - mean) / stdev
-    return {
-        "zscore": round(z, 4),
-        "mean_val": round(mean, 4),
-        "stdev_val": round(stdev, 4),
-        "current_val": round(current_cape, 4),
-        "window_years": 0,  # uses full history
-    }
+    return zscore_indicator(cape_series, current_cape)
 
 
 def zscore_gsr(
     gsr_series: pd.Series, current_gsr: float, window_years: int = 50
 ) -> dict:
-    """Z-Score of Gold/Silver Ratio.
+    return zscore_indicator(gsr_series, current_gsr, window_years)
 
-    Positive Z → ratio is high → silver undervalued → bullish for silver.
-    """
-    window_size = window_years * 12
-    window = gsr_series.tail(window_size)
+
+def zscore_indicator(
+    series: pd.Series, current_value: float, window_years: int = 0
+) -> dict:
+    """범용 지표 Z-Score. 전체 이력 또는 window 기반."""
+    if window_years > 0:
+        window_size = window_years * 12
+        window = series.tail(window_size)
+    else:
+        window = series
 
     if len(window) < MIN_DATA_POINTS:
-        return _empty_zscore(current_gsr, window_years)
+        return _empty_zscore(current_value, window_years)
 
     mean = float(window.mean())
     stdev = float(window.std(ddof=1))
 
     if stdev == 0:
-        return _empty_zscore(current_gsr, window_years)
+        return _empty_zscore(current_value, window_years)
 
-    z = (current_gsr - mean) / stdev
+    z = (current_value - mean) / stdev
     return {
         "zscore": round(z, 4),
         "mean_val": round(mean, 4),
         "stdev_val": round(stdev, 4),
-        "current_val": round(current_gsr, 4),
+        "current_val": round(current_value, 4),
         "window_years": window_years,
     }
 
@@ -187,104 +176,105 @@ def _empty_zscore(current_val: float, window_years: int) -> dict:
 def compute_all_zscores(
     store, as_of_date: date | None = None
 ) -> pd.DataFrame:
-    """Compute all Z-Scores for SILVER, GOLD, SP500, NDX.
-
-    Args:
-        store: Store instance for data access.
-        as_of_date: If set, only uses data up to this date (for backtest).
-
-    Returns:
-        DataFrame ready for upsert into zscores table.
-    """
+    """Compute all Z-Scores for SILVER, GOLD, SP500, NDX."""
     calc_date = as_of_date or date.today()
     rows = []
 
-    # ── SILVER ──
-    silver_prices = store.get_prices("SILVER", end=as_of_date)
-    silver_yoy = store.get_yoy_returns("SILVER", period="annual")
-    if as_of_date:
-        silver_yoy = silver_yoy[pd.to_datetime(silver_yoy["date"]).dt.date <= as_of_date]
+    # 공통 데이터 fetch
+    real_rate = store.get_indicator("REAINTRATREARAT10Y", end=as_of_date)
+    m2_gold = store.get_indicator("M2_GOLD", end=as_of_date)
 
-    if not silver_yoy.empty:
-        current_yoy = float(silver_yoy.iloc[-1]["yoy_pct"])
-        yoy_series = silver_yoy["yoy_pct"]
-
-        for window in [50, 10, 5]:
-            result = zscore_yoy_return(yoy_series, current_yoy, window)
-            rows.append(_zscore_row(calc_date, "SILVER", f"return_{window}y", result))
-
-    if not silver_prices.empty:
-        current_price = float(silver_prices.iloc[-1]["close"])
-        price_series = silver_prices["close"]
-        result = zscore_price_position(price_series, current_price, ma_years=10)
-        rows.append(_zscore_row(calc_date, "SILVER", "price_position", result))
-
-    # GSR
-    gsr_data = store.get_indicator("GSR", end=as_of_date)
-    if not gsr_data.empty:
-        current_gsr = float(gsr_data.iloc[-1]["value"])
-        gsr_series = gsr_data["value"]
-        result = zscore_gsr(gsr_series, current_gsr)
-        rows.append(_zscore_row(calc_date, "SILVER", "gsr", result))
-
-    # ── GOLD ──
-    gold_prices = store.get_prices("GOLD", end=as_of_date)
-    gold_yoy = store.get_yoy_returns("GOLD", period="annual")
-    if as_of_date:
-        gold_yoy = gold_yoy[pd.to_datetime(gold_yoy["date"]).dt.date <= as_of_date]
-
-    if not gold_yoy.empty:
-        current_yoy = float(gold_yoy.iloc[-1]["yoy_pct"])
-        yoy_series = gold_yoy["yoy_pct"]
-
-        for window in [50, 10, 5]:
-            result = zscore_yoy_return(yoy_series, current_yoy, window)
-            rows.append(_zscore_row(calc_date, "GOLD", f"return_{window}y", result))
-
-    if not gold_prices.empty:
-        current_price = float(gold_prices.iloc[-1]["close"])
-        price_series = gold_prices["close"]
-        result = zscore_price_position(price_series, current_price, ma_years=10)
-        rows.append(_zscore_row(calc_date, "GOLD", "price_position", result))
-
-    # ── SP500 ──
-    sp500_yoy = store.get_yoy_returns("SP500", period="annual")
-    if as_of_date:
-        sp500_yoy = sp500_yoy[pd.to_datetime(sp500_yoy["date"]).dt.date <= as_of_date]
-
-    if not sp500_yoy.empty:
-        current_yoy = float(sp500_yoy.iloc[-1]["yoy_pct"])
-        yoy_series = sp500_yoy["yoy_pct"]
-
-        for window in [50, 10, 5]:
-            result = zscore_yoy_return(yoy_series, current_yoy, window)
-            rows.append(_zscore_row(calc_date, "SP500", f"return_{window}y", result))
-
-    # CAPE
-    cape_data = store.get_indicator("CAPE", end=as_of_date)
-    if not cape_data.empty:
-        current_cape = float(cape_data.iloc[-1]["value"])
-        cape_series = cape_data["value"]
-        result = zscore_cape(cape_series, current_cape)
-        rows.append(_zscore_row(calc_date, "SP500", "cape", result))
-
-    # ── NDX ──
-    ndx_yoy = store.get_yoy_returns("NDX", period="annual")
-    if as_of_date:
-        ndx_yoy = ndx_yoy[pd.to_datetime(ndx_yoy["date"]).dt.date <= as_of_date]
-
-    if not ndx_yoy.empty:
-        current_yoy = float(ndx_yoy.iloc[-1]["yoy_pct"])
-        yoy_series = ndx_yoy["yoy_pct"]
-
-        for window in [10, 5]:
-            result = zscore_yoy_return(yoy_series, current_yoy, window)
-            rows.append(_zscore_row(calc_date, "NDX", f"return_{window}y", result))
+    _compute_silver_zscores(store, calc_date, as_of_date, real_rate, m2_gold, rows)
+    _compute_gold_zscores(store, calc_date, as_of_date, real_rate, m2_gold, rows)
+    _compute_sp500_zscores(store, calc_date, as_of_date, rows)
+    _compute_ndx_zscores(store, calc_date, as_of_date, rows)
 
     if not rows:
         return pd.DataFrame()
-
     return pd.DataFrame(rows)
+
+
+def _filter_by_date(df: pd.DataFrame, as_of_date: date | None) -> pd.DataFrame:
+    if as_of_date and not df.empty:
+        return df[pd.to_datetime(df["date"]).dt.date <= as_of_date]
+    return df
+
+
+def _add_yoy_zscores(rows, calc_date, symbol, yoy_df, windows):
+    if yoy_df.empty:
+        return
+    current_yoy = float(yoy_df.iloc[-1]["yoy_pct"])
+    for window in windows:
+        result = zscore_yoy_return(yoy_df["yoy_pct"], current_yoy, window)
+        rows.append(_zscore_row(calc_date, symbol, f"return_{window}y", result))
+
+
+def _add_indicator_zscore(rows, calc_date, symbol, metric, indicator_df, invert=False):
+    if indicator_df.empty:
+        return
+    current = float(indicator_df.iloc[-1]["value"])
+    result = zscore_indicator(indicator_df["value"], current)
+    if invert:
+        result["zscore"] = -result["zscore"]
+    rows.append(_zscore_row(calc_date, symbol, metric, result))
+
+
+def _compute_silver_zscores(store, calc_date, as_of_date, real_rate, m2_gold, rows):
+    prices = store.get_prices("SILVER", end=as_of_date)
+    yoy = _filter_by_date(store.get_yoy_returns("SILVER", period="annual"), as_of_date)
+
+    _add_yoy_zscores(rows, calc_date, "SILVER", yoy, [50, 10, 5])
+
+    if not prices.empty:
+        result = zscore_price_position(prices["close"], float(prices.iloc[-1]["close"]))
+        rows.append(_zscore_row(calc_date, "SILVER", "price_position", result))
+
+    _add_indicator_zscore(rows, calc_date, "SILVER", "real_rate", real_rate, invert=True)
+    _add_indicator_zscore(rows, calc_date, "SILVER", "m2_gold", m2_gold)
+
+    gsr_data = store.get_indicator("GSR", end=as_of_date)
+    if not gsr_data.empty:
+        result = zscore_indicator(gsr_data["value"], float(gsr_data.iloc[-1]["value"]), window_years=50)
+        rows.append(_zscore_row(calc_date, "SILVER", "gsr", result))
+
+
+def _compute_gold_zscores(store, calc_date, as_of_date, real_rate, m2_gold, rows):
+    prices = store.get_prices("GOLD", end=as_of_date)
+    yoy = _filter_by_date(store.get_yoy_returns("GOLD", period="annual"), as_of_date)
+
+    _add_yoy_zscores(rows, calc_date, "GOLD", yoy, [50, 10, 5])
+
+    if not prices.empty:
+        result = zscore_price_position(prices["close"], float(prices.iloc[-1]["close"]))
+        rows.append(_zscore_row(calc_date, "GOLD", "price_position", result))
+
+    _add_indicator_zscore(rows, calc_date, "GOLD", "real_rate", real_rate, invert=True)
+    _add_indicator_zscore(rows, calc_date, "GOLD", "m2_gold", m2_gold)
+
+
+def _compute_sp500_zscores(store, calc_date, as_of_date, rows):
+    yoy = _filter_by_date(store.get_yoy_returns("SP500", period="annual"), as_of_date)
+    _add_yoy_zscores(rows, calc_date, "SP500", yoy, [50, 10, 5])
+
+    cape = store.get_indicator("CAPE", end=as_of_date)
+    if not cape.empty:
+        result = zscore_indicator(cape["value"], float(cape.iloc[-1]["value"]))
+        rows.append(_zscore_row(calc_date, "SP500", "cape", result))
+
+    _add_indicator_zscore(rows, calc_date, "SP500", "buffett",
+                          store.get_indicator("BUFFETT", end=as_of_date))
+    _add_indicator_zscore(rows, calc_date, "SP500", "yield_curve",
+                          store.get_indicator("YIELD_CURVE", end=as_of_date))
+
+
+def _compute_ndx_zscores(store, calc_date, as_of_date, rows):
+    prices = store.get_prices("NDX", end=as_of_date)
+    yoy = _filter_by_date(store.get_yoy_returns("NDX", period="annual"), as_of_date)
+    _add_yoy_zscores(rows, calc_date, "NDX", yoy, [10, 5])
+
+    if not prices.empty:
+        result = zscore_price_position(prices["close"], float(prices.iloc[-1]["close"]))
+        rows.append(_zscore_row(calc_date, "NDX", "price_position", result))
 
 
 def _zscore_row(calc_date: date, symbol: str, metric: str, result: dict) -> dict:

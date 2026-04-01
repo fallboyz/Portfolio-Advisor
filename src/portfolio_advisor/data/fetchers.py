@@ -265,6 +265,26 @@ def fetch_cpi(api_key: str, start: str | None = None) -> pd.DataFrame:
     return fetch_fred_series("CPIAUCSL", api_key, start)
 
 
+def fetch_real_rate(api_key: str, start: str | None = None) -> pd.DataFrame:
+    return fetch_fred_series("REAINTRATREARAT10Y", api_key, start)
+
+
+def fetch_m2(api_key: str, start: str | None = None) -> pd.DataFrame:
+    return fetch_fred_series("M2SL", api_key, start)
+
+
+def fetch_gdp(api_key: str, start: str | None = None) -> pd.DataFrame:
+    return fetch_fred_series("GDP", api_key, start)
+
+
+def fetch_treasury_10y(api_key: str, start: str | None = None) -> pd.DataFrame:
+    return fetch_fred_series("DGS10", api_key, start)
+
+
+def fetch_treasury_3m(api_key: str, start: str | None = None) -> pd.DataFrame:
+    return fetch_fred_series("DGS3MO", api_key, start)
+
+
 # ── Derived ─────────────────────────────────────────────────
 
 
@@ -285,6 +305,90 @@ def calculate_gold_silver_ratio(
     result["date"] = merged["date"]
     result["indicator"] = "GSR"
     result["value"] = merged["gold_close"] / merged["silver_close"]
+    result["source"] = "calculated"
+
+    return result
+
+
+def calculate_m2_gold_ratio(
+    m2_df: pd.DataFrame, gold_df: pd.DataFrame
+) -> pd.DataFrame:
+    """M2 통화량 / 금 가격 비율. 높을수록 금이 통화량 대비 저평가."""
+    if m2_df.empty or gold_df.empty:
+        return pd.DataFrame()
+
+    m2 = m2_df[["date", "value"]].rename(columns={"value": "m2"})
+    gold = gold_df[["date", "close"]].rename(columns={"close": "gold_close"})
+
+    # M2는 월별, 금은 일별 -> M2를 월 기준으로 merge
+    m2["date"] = pd.to_datetime(m2["date"])
+    gold["date"] = pd.to_datetime(gold["date"])
+    m2["month_key"] = m2["date"].dt.to_period("M")
+    gold["month_key"] = gold["date"].dt.to_period("M")
+
+    # 월별 금 평균가
+    gold_monthly = gold.groupby("month_key")["gold_close"].mean().reset_index()
+    merged = pd.merge(m2, gold_monthly, on="month_key", how="inner")
+    merged = merged[merged["gold_close"] > 0]
+
+    result = pd.DataFrame()
+    result["date"] = merged["date"].dt.date
+    result["indicator"] = "M2_GOLD"
+    result["value"] = (merged["m2"] * 1_000_000_000) / merged["gold_close"]  # M2는 billions
+    result["source"] = "calculated"
+
+    return result
+
+
+def calculate_buffett_indicator(
+    gdp_df: pd.DataFrame, sp500_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Buffett Indicator: 시가총액 / GDP. Wilshire 5000 대용으로 S&P500 사용."""
+    if gdp_df.empty or sp500_df.empty:
+        return pd.DataFrame()
+
+    gdp = gdp_df[["date", "value"]].rename(columns={"value": "gdp"})
+    sp500 = sp500_df[["date", "close"]].rename(columns={"close": "sp500"})
+
+    gdp["date"] = pd.to_datetime(gdp["date"])
+    sp500["date"] = pd.to_datetime(sp500["date"])
+
+    # GDP는 분기별 -> forward fill해서 일별로 확장
+    gdp = gdp.set_index("date").resample("D").ffill().reset_index()
+
+    merged = pd.merge(
+        sp500.rename(columns={"date": "date"}),
+        gdp.rename(columns={"date": "date"}),
+        on="date", how="inner",
+    )
+    merged = merged[merged["gdp"] > 0]
+
+    # S&P500 레벨을 시총 프록시로 사용 (비율의 추세만 중요)
+    result = pd.DataFrame()
+    result["date"] = merged["date"].dt.date
+    result["indicator"] = "BUFFETT"
+    result["value"] = (merged["sp500"] / merged["gdp"]) * 100  # 퍼센트 스케일
+    result["source"] = "calculated"
+
+    return result
+
+
+def calculate_yield_curve(
+    t10y_df: pd.DataFrame, t3m_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Yield Curve 스프레드: 10년 - 3개월 국채 금리."""
+    if t10y_df.empty or t3m_df.empty:
+        return pd.DataFrame()
+
+    t10y = t10y_df[["date", "value"]].rename(columns={"value": "t10y"})
+    t3m = t3m_df[["date", "value"]].rename(columns={"value": "t3m"})
+
+    merged = pd.merge(t10y, t3m, on="date", how="inner")
+
+    result = pd.DataFrame()
+    result["date"] = merged["date"]
+    result["indicator"] = "YIELD_CURVE"
+    result["value"] = merged["t10y"] - merged["t3m"]
     result["source"] = "calculated"
 
     return result

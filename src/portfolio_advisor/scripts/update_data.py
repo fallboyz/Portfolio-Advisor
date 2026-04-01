@@ -11,12 +11,20 @@ from portfolio_advisor.analysis.signal import compute_full_signal
 from portfolio_advisor.analysis.zscore import calculate_yoy_returns
 from portfolio_advisor.config import load_config
 from portfolio_advisor.data.fetchers import (
+    calculate_buffett_indicator,
     calculate_gold_silver_ratio,
+    calculate_m2_gold_ratio,
+    calculate_yield_curve,
     download_shiller_excel,
     fetch_cpi,
     fetch_fed_funds,
+    fetch_gdp,
+    fetch_m2,
+    fetch_real_rate,
     fetch_shiller_excel,
     fetch_silver_historical_csv,
+    fetch_treasury_10y,
+    fetch_treasury_3m,
     fetch_yfinance_symbol,
 )
 from portfolio_advisor.data.store import Store
@@ -57,6 +65,9 @@ def _run_pipeline(store: Store, config: dict):
     # Phase 2: Derived calculations
     logger.info("=== Phase 2: Derived calculations ===")
     _compute_gsr(store)
+    _compute_m2_gold(store)
+    _compute_buffett(store)
+    _compute_yield_curve(store)
     _compute_yoy_returns(store)
 
     # Phase 3: Analysis
@@ -197,7 +208,15 @@ def _fetch_fred(store: Store, config: dict, sync_status: dict):
         logger.warning("FRED API key not configured, skipping FRED data")
         return
 
-    for name, fetcher in [("fred_fedfunds", fetch_fed_funds), ("fred_cpi", fetch_cpi)]:
+    for name, fetcher in [
+        ("fred_fedfunds", fetch_fed_funds),
+        ("fred_cpi", fetch_cpi),
+        ("fred_real_rate", fetch_real_rate),
+        ("fred_m2", fetch_m2),
+        ("fred_gdp", fetch_gdp),
+        ("fred_treasury_10y", fetch_treasury_10y),
+        ("fred_treasury_3m", fetch_treasury_3m),
+    ]:
         start = _start_date_for(sync_status, name)
         try:
             df = fetcher(api_key, start=start)
@@ -224,6 +243,39 @@ def _compute_gsr(store: Store):
     gsr = calculate_gold_silver_ratio(gold, silver)
     count = store.upsert_economic_indicators(gsr)
     logger.info("GSR: computed %d rows", count)
+
+
+def _compute_m2_gold(store: Store):
+    m2 = store.get_indicator("M2SL")
+    gold = store.get_prices("GOLD")
+    if m2.empty or gold.empty:
+        logger.warning("Missing M2 or gold prices, skipping M2/Gold calculation")
+        return
+    df = calculate_m2_gold_ratio(m2, gold)
+    count = store.upsert_economic_indicators(df)
+    logger.info("M2/Gold: computed %d rows", count)
+
+
+def _compute_buffett(store: Store):
+    gdp = store.get_indicator("GDP")
+    sp500 = store.get_prices("SP500")
+    if gdp.empty or sp500.empty:
+        logger.warning("Missing GDP or SP500 prices, skipping Buffett Indicator")
+        return
+    df = calculate_buffett_indicator(gdp, sp500)
+    count = store.upsert_economic_indicators(df)
+    logger.info("Buffett Indicator: computed %d rows", count)
+
+
+def _compute_yield_curve(store: Store):
+    t10y = store.get_indicator("DGS10")
+    t3m = store.get_indicator("DGS3MO")
+    if t10y.empty or t3m.empty:
+        logger.warning("Missing treasury data, skipping Yield Curve")
+        return
+    df = calculate_yield_curve(t10y, t3m)
+    count = store.upsert_economic_indicators(df)
+    logger.info("Yield Curve: computed %d rows", count)
 
 
 def _compute_yoy_returns(store: Store):

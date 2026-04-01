@@ -143,7 +143,6 @@ def compute_full_signal(
     from portfolio_advisor.analysis.zscore import compute_all_zscores
 
     calc_date = as_of_date or date.today()
-    weights = config.get("weights", {})
     thresholds = config.get("signals", {})
     overlay_config = config.get("drawdown_overlay", {})
 
@@ -162,10 +161,10 @@ def compute_full_signal(
         asset_zscores[symbol][row["metric"]] = row["zscore"]
 
     # 3. Individual composites
-    s_gold = compute_gold_composite(asset_zscores.get("GOLD", {}), weights)
-    s_silver = compute_silver_composite(asset_zscores.get("SILVER", {}), weights)
-    s_sp500 = compute_etf_composite(asset_zscores.get("SP500", {}), weights)
-    s_ndx = compute_ndx_composite(asset_zscores.get("NDX", {}), weights)
+    s_gold = compute_gold_composite(asset_zscores.get("GOLD", {}), config)
+    s_silver = compute_silver_composite(asset_zscores.get("SILVER", {}), config)
+    s_sp500 = compute_etf_composite(asset_zscores.get("SP500", {}), config)
+    s_ndx = compute_ndx_composite(asset_zscores.get("NDX", {}), config)
 
     # 4. Group scores
     s_precious, s_etf = compute_group_scores(s_gold, s_silver, s_sp500, s_ndx)
@@ -196,7 +195,8 @@ def compute_full_signal(
     r_etf_internal = round(s_sp500 - s_ndx, 4)
 
     # 10. Save
-    weights_hash = hashlib.md5(json.dumps(weights, sort_keys=True).encode()).hexdigest()[:8]
+    all_weights = {k: v for k, v in config.items() if k.startswith("weights")}
+    weights_hash = hashlib.md5(json.dumps(all_weights, sort_keys=True).encode()).hexdigest()[:8]
     composite_df = pd.DataFrame([{
         "calc_date": calc_date,
         "s_gold": s_gold,

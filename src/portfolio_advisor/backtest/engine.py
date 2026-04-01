@@ -38,7 +38,6 @@ class BacktestEngine:
     def __init__(self, store: Store, config: dict):
         self.store = store
         self.config = config
-        self.weights = config.get("weights", {})
         self.thresholds = config.get("signals", {})
         self.overlay_config = config.get("drawdown_overlay", {})
 
@@ -176,10 +175,10 @@ class BacktestEngine:
                 asset_zscores[symbol] = {}
             asset_zscores[symbol][row["metric"]] = row["zscore"]
 
-        s_gold = compute_gold_composite(asset_zscores.get("GOLD", {}), self.weights)
-        s_silver = compute_silver_composite(asset_zscores.get("SILVER", {}), self.weights)
-        s_sp500 = compute_etf_composite(asset_zscores.get("SP500", {}), self.weights)
-        s_ndx = compute_ndx_composite(asset_zscores.get("NDX", {}), self.weights)
+        s_gold = compute_gold_composite(asset_zscores.get("GOLD", {}), self.config)
+        s_silver = compute_silver_composite(asset_zscores.get("SILVER", {}), self.config)
+        s_sp500 = compute_etf_composite(asset_zscores.get("SP500", {}), self.config)
+        s_ndx = compute_ndx_composite(asset_zscores.get("NDX", {}), self.config)
 
         s_precious, s_etf = compute_group_scores(s_gold, s_silver, s_sp500, s_ndx)
 

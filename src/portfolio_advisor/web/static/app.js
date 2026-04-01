@@ -37,7 +37,11 @@
         return_5y: "5년 수익률",
         price_position: "가격 위치",
         cape: "CAPE",
-        gsr: "금은비"
+        gsr: "금은비",
+        real_rate: "실질금리",
+        m2_gold: "M2/금 비율",
+        buffett: "Buffett 지표",
+        yield_curve: "장단기 금리차"
     };
 
     var currentYears = 1;
@@ -78,6 +82,7 @@
         loadLatest();
         loadPrices(currentYears);
         loadGSR();
+        loadValuationIndicators();
         loadZscores();
         loadCompositeHistory();
 
@@ -339,6 +344,48 @@
             ]
         });
         Plotly.newPlot("chart-gsr", traces, layout, plotlyConfig);
+    }
+
+    // ── Valuation Indicators ──
+
+    function loadValuationIndicators() {
+        var indicators = [
+            { name: "REAINTRATREARAT10Y", div: "chart-real-rate", title: "실질금리 (%)", color: "#7c3aed" },
+            { name: "M2_GOLD", div: "chart-m2-gold", title: "M2/금 비율", color: AMBER },
+            { name: "BUFFETT", div: "chart-buffett", title: "Buffett Indicator", color: RED },
+            { name: "YIELD_CURVE", div: "chart-yield-curve", title: "장단기 금리차 (%p)", color: BLUE }
+        ];
+        var loaded = 0;
+        indicators.forEach(function (ind) {
+            fetch("/api/indicators/" + ind.name)
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.dates && data.dates.length > 0) {
+                        loaded++;
+                        if (loaded === 1) {
+                            document.getElementById("valuation-section").style.display = "block";
+                        }
+                        renderIndicatorChart(ind.div, data, ind.title, ind.color);
+                    }
+                });
+        });
+    }
+
+    function renderIndicatorChart(divId, data, title, color) {
+        var traces = [{
+            x: data.dates,
+            y: data.values,
+            type: "scatter",
+            mode: "lines",
+            name: title,
+            line: { width: 1.5, color: color }
+        }];
+        var layout = mergeLayout({
+            height: 280,
+            yaxis: { title: title, gridcolor: "#f0f0f0", zeroline: true },
+            xaxis: { gridcolor: "#f0f0f0", zeroline: false }
+        });
+        Plotly.newPlot(divId, traces, layout, plotlyConfig);
     }
 
     // ── Z-Score Heatmap ──

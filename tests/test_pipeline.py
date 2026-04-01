@@ -38,12 +38,21 @@ def config(tmp_path):
         },
         "fred_series": {"fed_funds": "FEDFUNDS", "cpi": "CPIAUCSL"},
         "server": {"web_port": 8501, "mcp_port": 8001, "mcp_host": "0.0.0.0"},
-        "weights": {
-            "w1_50y": 0.20,
-            "w2_10y": 0.25,
-            "w3_5y": 0.25,
-            "w4_valuation": 0.20,
-            "w5_gsr": 0.10,
+        "weights_gold": {
+            "real_rate": 0.30, "m2_gold": 0.30,
+            "price_position": 0.20, "return_10y": 0.20,
+        },
+        "weights_silver": {
+            "real_rate": 0.25, "m2_gold": 0.25,
+            "price_position": 0.15, "return_10y": 0.15, "gsr": 0.20,
+        },
+        "weights_sp500": {
+            "cape": 0.35, "buffett": 0.25,
+            "yield_curve": 0.15, "return_10y": 0.25,
+        },
+        "weights_ndx": {
+            "return_10y": 0.40, "return_5y": 0.40,
+            "price_position": 0.20,
         },
         "signals": {
             "strong_precious": -2.0,
@@ -60,7 +69,6 @@ def config(tmp_path):
 
 
 def _make_price_df(symbol: str, n_months: int = 120) -> pd.DataFrame:
-    """Generate mock price data."""
     import numpy as np
 
     rng = np.random.default_rng(42)
@@ -82,13 +90,38 @@ def _make_price_df(symbol: str, n_months: int = 120) -> pd.DataFrame:
     )
 
 
-def _make_fred_df(indicator: str) -> pd.DataFrame:
-    dates = pd.date_range("2014-01-01", periods=120, freq="MS")
+def _make_fred_df(indicator: str, n_months: int = 120) -> pd.DataFrame:
+    dates = pd.date_range("2014-01-01", periods=n_months, freq="MS")
     return pd.DataFrame(
         {
             "date": dates.date,
             "indicator": indicator,
-            "value": [5.0 + i * 0.01 for i in range(120)],
+            "value": [5.0 + i * 0.01 for i in range(n_months)],
+            "source": "fred",
+        }
+    )
+
+
+def _make_gdp_df() -> pd.DataFrame:
+    dates = pd.date_range("2014-01-01", periods=40, freq="QS")
+    return pd.DataFrame(
+        {
+            "date": dates.date,
+            "indicator": "GDP",
+            "value": [17000 + i * 100 for i in range(40)],
+            "source": "fred",
+        }
+    )
+
+
+def _make_treasury_df(indicator: str) -> pd.DataFrame:
+    dates = pd.date_range("2014-01-01", periods=120, freq="MS")
+    base = 3.0 if indicator == "DGS10" else 1.5
+    return pd.DataFrame(
+        {
+            "date": dates.date,
+            "indicator": indicator,
+            "value": [base + i * 0.005 for i in range(120)],
             "source": "fred",
         }
     )
@@ -98,13 +131,18 @@ def _make_fred_df(indicator: str) -> pd.DataFrame:
 @patch("portfolio_advisor.scripts.update_data.fetch_shiller_excel")
 @patch("portfolio_advisor.scripts.update_data.fetch_fed_funds")
 @patch("portfolio_advisor.scripts.update_data.fetch_cpi")
+@patch("portfolio_advisor.scripts.update_data.fetch_real_rate")
+@patch("portfolio_advisor.scripts.update_data.fetch_m2")
+@patch("portfolio_advisor.scripts.update_data.fetch_gdp")
+@patch("portfolio_advisor.scripts.update_data.fetch_treasury_10y")
+@patch("portfolio_advisor.scripts.update_data.fetch_treasury_3m")
 @patch("portfolio_advisor.scripts.update_data.fetch_yfinance_symbol")
 def test_pipeline_integration(
-    mock_yf, mock_cpi, mock_fed, mock_shiller, mock_download_shiller, store, config
+    mock_yf, mock_t3m, mock_t10y, mock_gdp, mock_m2, mock_real_rate,
+    mock_cpi, mock_fed, mock_shiller, mock_download_shiller, store, config
 ):
     """Integration test: mock all external fetchers, verify DB is populated."""
 
-    # Setup mocks
     def yf_side_effect(symbol, display_name, start="1970-01-01", end=None):
         return _make_price_df(display_name)
 
@@ -123,29 +161,40 @@ def test_pipeline_integration(
 
     mock_fed.return_value = _make_fred_df("FEDFUNDS")
     mock_cpi.return_value = _make_fred_df("CPIAUCSL")
+    mock_real_rate.return_value = _make_fred_df("REAINTRATREARAT10Y")
+    mock_m2.return_value = _make_fred_df("M2SL")
+    mock_gdp.return_value = _make_gdp_df()
+    mock_t10y.return_value = _make_treasury_df("DGS10")
+    mock_t3m.return_value = _make_treasury_df("DGS3MO")
 
     # Run pipeline
     _run_pipeline(store, config)
 
-    # Verify data was stored
-    silver = store.get_prices("SILVER")
-    assert len(silver) > 0
+    # Verify prices
+    assert len(store.get_prices("SILVER")) > 0
+    assert len(store.get_prices("GOLD")) > 0
+    assert len(store.get_prices("SP500")) > 0
 
-    gold = store.get_prices("GOLD")
-    assert len(gold) > 0
-
-    sp500 = store.get_prices("SP500")
-    assert len(sp500) > 0
-
-    # Verify derived calculations
+    # Verify derived: GSR
     gsr = store.get_indicator("GSR")
     assert len(gsr) > 0
 
-    # Verify YoY returns were computed
-    silver_yoy = store.get_yoy_returns("SILVER")
-    assert len(silver_yoy) > 0
+    # Verify derived: M2/Gold ratio
+    m2_gold = store.get_indicator("M2_GOLD")
+    assert len(m2_gold) > 0
 
-    # Verify composite scores were computed
+    # Verify derived: Buffett Indicator
+    buffett = store.get_indicator("BUFFETT")
+    assert len(buffett) > 0
+
+    # Verify derived: Yield Curve
+    yc = store.get_indicator("YIELD_CURVE")
+    assert len(yc) > 0
+
+    # Verify YoY returns
+    assert len(store.get_yoy_returns("SILVER")) > 0
+
+    # Verify composite scores
     latest = store.get_latest_composite()
     assert latest is not None
     assert latest["signal_label"] in {"strong_precious", "mild_precious", "neutral", "mild_etf", "strong_etf"}

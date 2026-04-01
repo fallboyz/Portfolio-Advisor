@@ -123,6 +123,36 @@
             <div id="chart-gsr"></div>
         </div>
 
+        <!-- Valuation Indicators -->
+        <div id="valuation-section" style="display:none;">
+            <div class="section-header">밸류에이션 지표</div>
+            <div class="guide-box">
+                분석에 사용된 검증된 밸류에이션 지표들.
+                <b>실질금리</b>: 금리 높을수록 금에 불리.
+                <b>M2/금</b>: 높을수록 금이 통화량 대비 저평가.
+                <b>Buffett 지표</b>: 높을수록 주식 과평가.
+                <b>장단기 금리차</b>: 음수(역전) = 경기 둔화 신호.
+            </div>
+            <div class="chart-grid">
+                <div class="chart-cell">
+                    <div class="chart-title">10년 실질금리</div>
+                    <div id="chart-real-rate"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">M2/금 비율</div>
+                    <div id="chart-m2-gold"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">Buffett Indicator (시총/GDP)</div>
+                    <div id="chart-buffett"></div>
+                </div>
+                <div class="chart-cell">
+                    <div class="chart-title">장단기 금리차 (10Y-3M)</div>
+                    <div id="chart-yield-curve"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Z-Score Heatmap -->
         <div id="zscore-section" style="display:none;">
             <div class="section-header">Z-Score 분석</div>
