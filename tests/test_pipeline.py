@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -18,54 +18,11 @@ def store():
 
 
 @pytest.fixture
-def config(tmp_path):
-    return {
-        "api_keys": {"fred": "test_key"},
-        "data": {
-            "db_path": ":memory:",
-            "raw_dir": str(tmp_path / "raw"),
-            "macrotrends_csv": str(tmp_path / "raw" / "silver.csv"),
-            "shiller_excel": str(tmp_path / "raw" / "ie_data.xls"),
-            "shiller_url": "http://fake.url/ie_data.xls",
-        },
-        "symbols": {
-            "silver": "SI=F",
-            "gold": "GC=F",
-            "sp500": "^GSPC",
-            "ndx": "^NDX",
-            "dxy": "DX-Y.NYB",
-            "vix": "^VIX",
-        },
-        "fred_series": {"fed_funds": "FEDFUNDS", "cpi": "CPIAUCSL"},
-        "server": {"web_port": 8501, "mcp_port": 8001, "mcp_host": "0.0.0.0"},
-        "weights_gold": {
-            "real_rate": 0.30, "m2_gold": 0.30,
-            "price_position": 0.20, "return_10y": 0.20,
-        },
-        "weights_silver": {
-            "real_rate": 0.25, "m2_gold": 0.25,
-            "price_position": 0.15, "return_10y": 0.15, "gsr": 0.20,
-        },
-        "weights_sp500": {
-            "cape": 0.35, "buffett": 0.25,
-            "yield_curve": 0.15, "return_10y": 0.25,
-        },
-        "weights_ndx": {
-            "return_10y": 0.40, "return_5y": 0.40,
-            "price_position": 0.20,
-        },
-        "signals": {
-            "strong_precious": -2.0,
-            "mild_precious": -1.0,
-            "mild_etf": 1.0,
-            "strong_etf": 2.0,
-        },
-        "drawdown_overlay": {
-            "silver_crash_threshold": -40,
-            "etf_crash_threshold": -30,
-            "silver_rally_threshold": 100,
-        },
-    }
+def config(tmp_config, tmp_path):
+    tmp_config["data"]["macrotrends_csv"] = str(tmp_path / "raw" / "silver.csv")
+    tmp_config["data"]["shiller_excel"] = str(tmp_path / "raw" / "ie_data.xls")
+    tmp_config["data"]["shiller_url"] = "http://fake.url/ie_data.xls"
+    return tmp_config
 
 
 def _make_price_df(symbol: str, n_months: int = 120) -> pd.DataFrame:
@@ -129,8 +86,6 @@ def _make_treasury_df(indicator: str) -> pd.DataFrame:
 
 @patch("portfolio_advisor.scripts.update_data.download_shiller_excel")
 @patch("portfolio_advisor.scripts.update_data.fetch_shiller_excel")
-@patch("portfolio_advisor.scripts.update_data.fetch_fed_funds")
-@patch("portfolio_advisor.scripts.update_data.fetch_cpi")
 @patch("portfolio_advisor.scripts.update_data.fetch_real_rate")
 @patch("portfolio_advisor.scripts.update_data.fetch_m2")
 @patch("portfolio_advisor.scripts.update_data.fetch_gdp")
@@ -139,7 +94,7 @@ def _make_treasury_df(indicator: str) -> pd.DataFrame:
 @patch("portfolio_advisor.scripts.update_data.fetch_yfinance_symbol")
 def test_pipeline_integration(
     mock_yf, mock_t3m, mock_t10y, mock_gdp, mock_m2, mock_real_rate,
-    mock_cpi, mock_fed, mock_shiller, mock_download_shiller, store, config
+    mock_shiller, mock_download_shiller, store, config
 ):
     """Integration test: mock all external fetchers, verify DB is populated."""
 
@@ -159,8 +114,6 @@ def test_pipeline_integration(
     )
     mock_download_shiller.return_value = config["data"]["shiller_excel"]
 
-    mock_fed.return_value = _make_fred_df("FEDFUNDS")
-    mock_cpi.return_value = _make_fred_df("CPIAUCSL")
     mock_real_rate.return_value = _make_fred_df("REAINTRATREARAT10Y")
     mock_m2.return_value = _make_fred_df("M2SL")
     mock_gdp.return_value = _make_gdp_df()

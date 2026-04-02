@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-import logging
 from datetime import date
 
-import numpy as np
 import pandas as pd
-
-logger = logging.getLogger(__name__)
 
 MIN_DATA_POINTS = 3
 
@@ -118,16 +114,6 @@ def zscore_price_position(
         "current_val": round(current_price, 4),
         "window_years": ma_years,
     }
-
-
-def zscore_cape(cape_series: pd.Series, current_cape: float) -> dict:
-    return zscore_indicator(cape_series, current_cape)
-
-
-def zscore_gsr(
-    gsr_series: pd.Series, current_gsr: float, window_years: int = 50
-) -> dict:
-    return zscore_indicator(gsr_series, current_gsr, window_years)
 
 
 def zscore_indicator(

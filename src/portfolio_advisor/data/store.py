@@ -188,6 +188,9 @@ class Store:
         ).fetchone()
         return result[0]
 
+    def delete_comment(self, comment_id: int) -> None:
+        self.conn.execute("DELETE FROM comments WHERE id = ?", [comment_id])
+
     def log_sync(
         self,
         source: str,
@@ -368,22 +371,6 @@ class Store:
                 "calc_date": cd.isoformat() if hasattr(cd, "isoformat") else str(cd),
                 "analyzed_at": at.isoformat() if hasattr(at, "isoformat") else str(at),
                 "source": row["source"],
-            })
-        return entries
-
-    def get_composite_dates(self) -> list[dict]:
-        result = self.conn.execute(
-            "SELECT calc_date, analyzed_at FROM composite_scores ORDER BY analyzed_at DESC, calc_date DESC"
-        ).fetchdf()
-        if result.empty:
-            return []
-        entries = []
-        for _, row in result.iterrows():
-            cd = row["calc_date"]
-            at = row["analyzed_at"]
-            entries.append({
-                "calc_date": cd.date() if hasattr(cd, "date") else cd,
-                "analyzed_at": at.isoformat() if hasattr(at, "isoformat") else str(at),
             })
         return entries
 

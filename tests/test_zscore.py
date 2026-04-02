@@ -9,8 +9,7 @@ import pytest
 from portfolio_advisor.analysis.zscore import (
     calculate_yoy_returns,
     compute_all_zscores,
-    zscore_cape,
-    zscore_gsr,
+    zscore_indicator,
     zscore_price_position,
     zscore_yoy_return,
 )
@@ -101,34 +100,28 @@ class TestZscorePricePosition:
         assert abs(result["zscore"]) < 0.1
 
 
-class TestZscoreCape:
-    def test_high_cape(self):
-        # Historical average ~16, current ~38
-        cape_history = pd.Series(np.random.normal(16, 5, 1000))
-        result = zscore_cape(cape_history, 38.0)
-        assert result["zscore"] > 3.0  # well above average
+class TestZscoreIndicator:
+    def test_high_value(self):
+        rng = np.random.default_rng(42)
+        history = pd.Series(rng.normal(16, 5, 1000))
+        result = zscore_indicator(history, 38.0)
+        assert result["zscore"] > 3.0
 
-    def test_low_cape(self):
-        cape_history = pd.Series(np.random.normal(16, 5, 1000))
-        result = zscore_cape(cape_history, 8.0)
+    def test_low_value(self):
+        rng = np.random.default_rng(42)
+        history = pd.Series(rng.normal(16, 5, 1000))
+        result = zscore_indicator(history, 8.0)
         assert result["zscore"] < -1.0
 
     def test_insufficient_data(self):
-        result = zscore_cape(pd.Series([15.0]), 38.0)
+        result = zscore_indicator(pd.Series([15.0]), 38.0)
         assert result["zscore"] == 0.0
 
-
-class TestZscoreGsr:
-    def test_high_ratio(self):
-        # Average ~60, high ratio means silver undervalued
-        gsr = pd.Series(np.random.normal(60, 10, 600))
-        result = zscore_gsr(gsr, 90.0, window_years=50)
+    def test_with_window(self):
+        rng = np.random.default_rng(42)
+        series = pd.Series(rng.normal(60, 10, 600))
+        result = zscore_indicator(series, 90.0, window_years=50)
         assert result["zscore"] > 2.0
-
-    def test_low_ratio(self):
-        gsr = pd.Series(np.random.normal(60, 10, 600))
-        result = zscore_gsr(gsr, 30.0, window_years=50)
-        assert result["zscore"] < -2.0
 
 
 # ── Orchestrator ────────────────────────────────────────────

@@ -22,10 +22,8 @@ src/portfolio_advisor/
     zscore.py         - Z-Score 계산 (실질금리, M2/금, CAPE, Buffett, Yield Curve, GSR 등)
     composite.py      - 복합 점수 (검증된 지표 기반, 자산별 가중치)
     signal.py         - 2단계 비율 조정 신호 + Drawdown 보정
-  backtest/
-    engine.py         - Walk-forward 백테스트 (look-ahead bias 방지)
   mcp/
-    server.py         - FastMCP Streamable HTTP (6개 도구, Finnhub 뉴스 포함)
+    server.py         - FastMCP Streamable HTTP (7개 도구, Finnhub 뉴스 포함)
   web/
     app.py            - FastAPI + Jinja2 대시보드 (단일 페이지)
     templates/
@@ -61,7 +59,7 @@ MCP 분석 시: finnhub → get_news (뉴스 동향 참조)
 
 - 테스트는 in-memory DuckDB 사용 (`:memory:`)
 - conftest.py에 공유 fixture (sample_prices, tmp_config)
-- look-ahead bias 검증 테스트 필수 (backtest, zscore)
+- look-ahead bias 검증 테스트 필수 (zscore)
 
 ## Conventions
 

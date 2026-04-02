@@ -116,20 +116,9 @@ def api_history():
     with _open_store() as store:
         df = store.get_composite_history()
         rows = []
-        dates = []
         for _, r in df.iterrows():
             rows.append(_serialize(r.to_dict()))
-            cd = r["calc_date"]
-            at = r["analyzed_at"]
-            dates.append({
-                "calc_date": cd.date().isoformat() if hasattr(cd, "date") else str(cd),
-                "analyzed_at": at.isoformat() if hasattr(at, "isoformat") else str(at),
-            })
-        dates.reverse()
-        return {
-            "dates": dates,
-            "history": rows,
-        }
+        return {"history": rows}
 
 
 @app.get("/api/analysis-dates")

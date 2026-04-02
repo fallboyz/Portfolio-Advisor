@@ -425,6 +425,12 @@ html, body {
     margin-bottom: 0.8rem;
 }
 
+.analysis-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
 .analysis-subsection h3 {
     font-size: 1rem;
     font-weight: 700;

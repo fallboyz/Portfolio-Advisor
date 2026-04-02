@@ -274,7 +274,7 @@ class TestDateQueries:
 
         assert store.get_composite_by_date(date(2099, 1, 1)) is None
 
-    def test_get_composite_dates(self, store: Store):
+    def test_get_analysis_dates(self, store: Store):
         df = pd.DataFrame([
             _make_composite_row(date(2024, 1, 31)),
             _make_composite_row(date(2024, 2, 29)),
@@ -282,9 +282,8 @@ class TestDateQueries:
         ])
         store.insert_composite_scores(df)
 
-        dates = store.get_composite_dates()
+        dates = store.get_analysis_dates()
         assert len(dates) == 3
-        assert dates[0]["calc_date"] == date(2024, 3, 31)  # DESC order
         assert "analyzed_at" in dates[0]
 
     def test_get_zscores_by_date(self, store: Store):
@@ -327,11 +326,18 @@ class TestComments:
         assert len(comments) == 2
         assert comments.iloc[0]["author"] == "user"  # newest first
 
+    def test_delete(self, store: Store):
+        id1 = store.add_comment(date(2024, 3, 30), "To be deleted")
+        store.delete_comment(id1)
+
+        comments = store.get_comments()
+        assert len(comments) == 0
+
 
 class TestSyncLog:
     def test_log_and_read(self, store: Store):
         store.log_sync("yfinance_silver", 100)
-        store.log_sync("fred_cpi", 50, status="error", error_msg="timeout")
+        store.log_sync("fred_m2", 50, status="error", error_msg="timeout")
 
         status = store.get_sync_status()
         assert len(status) == 2

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -16,8 +16,6 @@ from portfolio_advisor.data.fetchers import (
     calculate_m2_gold_ratio,
     calculate_yield_curve,
     download_shiller_excel,
-    fetch_cpi,
-    fetch_fed_funds,
     fetch_gdp,
     fetch_m2,
     fetch_real_rate,
@@ -209,8 +207,6 @@ def _fetch_fred(store: Store, config: dict, sync_status: dict):
         return
 
     for name, fetcher in [
-        ("fred_fedfunds", fetch_fed_funds),
-        ("fred_cpi", fetch_cpi),
         ("fred_real_rate", fetch_real_rate),
         ("fred_m2", fetch_m2),
         ("fred_gdp", fetch_gdp),

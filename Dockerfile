@@ -21,7 +21,6 @@ RUN mkdir -p /app/data/raw
 
 EXPOSE 8501 8001
 
-COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh
 
-CMD ["/entrypoint.sh"]
+CMD ["/app/scripts/entrypoint.sh"]

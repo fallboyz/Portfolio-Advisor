@@ -81,13 +81,14 @@ def get_history(symbol: str, start: str | None = None, end: str | None = None) -
         end_date = date.fromisoformat(end) if end else None
 
         prices = store.get_prices(symbol, start=start_date, end=end_date)
+        total = len(prices)
 
-        if len(prices) > 100:
+        if total > 100:
             prices = prices.tail(100)
 
         return {
             "symbol": symbol,
-            "total_rows": len(prices),
+            "total_rows": total,
             "data": prices[["date", "close"]].to_dict("records") if not prices.empty else [],
         }
     finally:
@@ -95,32 +96,39 @@ def get_history(symbol: str, start: str | None = None, end: str | None = None) -
 
 
 @mcp.tool()
-def add_comment(date_str: str, content: str) -> dict:
-    """분석 코멘트 기록.
+def add_comment(content: str) -> dict:
+    """분석 코멘트 기록. 시간은 현재 시각이 자동 입력됨.
 
     Args:
-        date_str: 날짜 (YYYY-MM-DD) 또는 날짜시간 (YYYY-MM-DDTHH:MM:SS)
         content: 코멘트 내용
     """
     store = Store(_get_db_path())
     try:
-        if "T" in date_str or " " in date_str:
-            comment_date = datetime.fromisoformat(date_str)
-        else:
-            comment_date = datetime.fromisoformat(date_str + "T" + datetime.now().strftime("%H:%M:%S"))
+        comment_date = datetime.now()
         comment_id = store.add_comment(comment_date, content, author="claude")
-        return {"id": comment_id, "status": "saved"}
+        return {"id": comment_id, "status": "saved", "date": comment_date.isoformat()}
     finally:
         store.close()
 
 
 @mcp.tool()
-def get_report(period: str = "monthly") -> dict:
-    """리포트 조회 (현재 신호, 최근 코멘트, 데이터 상태).
+def delete_comment(comment_id: int) -> dict:
+    """잘못 저장된 코멘트 삭제.
 
     Args:
-        period: 리포트 기간 (monthly, semi_annual, annual)
+        comment_id: 삭제할 코멘트 ID
     """
+    store = Store(_get_db_path())
+    try:
+        store.delete_comment(comment_id)
+        return {"id": comment_id, "status": "deleted"}
+    finally:
+        store.close()
+
+
+@mcp.tool()
+def get_report() -> dict:
+    """리포트 조회 (현재 신호, 최근 코멘트, 데이터 상태)."""
     store = Store(_get_db_path(), read_only=True)
     try:
         latest = store.get_latest_composite()
@@ -128,7 +136,6 @@ def get_report(period: str = "monthly") -> dict:
         sync = store.get_sync_status()
 
         return {
-            "period": period,
             "signal": latest if latest else {},
             "recent_comments": comments[["date", "author", "content"]].to_dict("records") if not comments.empty else [],
             "data_freshness": sync[["source", "last_sync", "status"]].to_dict("records") if not sync.empty else [],

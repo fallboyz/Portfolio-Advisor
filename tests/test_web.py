@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from portfolio_advisor.data.store import Store
-from portfolio_advisor.web.app import app, _open_store
+from portfolio_advisor.web.app import app
 
 
 @pytest.fixture
@@ -97,7 +97,6 @@ class TestApiHistory:
     def test_empty(self, client):
         resp = client.get("/api/history")
         data = resp.json()
-        assert data["dates"] == []
         assert data["history"] == []
 
     def test_with_data(self, client, store):
@@ -105,7 +104,6 @@ class TestApiHistory:
         _seed_composite(store, date(2024, 2, 29), "mild_precious")
         resp = client.get("/api/history")
         data = resp.json()
-        assert len(data["dates"]) == 2
         assert len(data["history"]) == 2
 
 

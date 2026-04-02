@@ -12,7 +12,6 @@ def tmp_config() -> dict:
         "api_keys": {"fred": "test_key"},
         "data": {
             "db_path": ":memory:",
-            "raw_dir": "data/raw",
             "macrotrends_csv": "data/raw/silver_historical.csv",
             "shiller_excel": "data/raw/ie_data.xls",
             "shiller_url": "http://www.econ.yale.edu/~shiller/data/ie_data.xls",
@@ -25,7 +24,6 @@ def tmp_config() -> dict:
             "dxy": "DX-Y.NYB",
             "vix": "^VIX",
         },
-        "fred_series": {"fed_funds": "FEDFUNDS", "cpi": "CPIAUCSL"},
         "server": {"web_port": 8501, "mcp_port": 8001, "mcp_host": "0.0.0.0"},
         "weights_gold": {
             "real_rate": 0.30, "m2_gold": 0.30,

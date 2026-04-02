@@ -43,7 +43,6 @@ finnhub = ""  # .env의 FINNHUB_API_KEY 사용
 
 [data]
 db_path = "data/portfolio.ddb"
-raw_dir = "data/raw"
 macrotrends_csv = "data/raw/silver_historical.csv"
 shiller_excel = "data/raw/ie_data.xls"
 shiller_url = "http://www.econ.yale.edu/~shiller/data/ie_data.xls"
@@ -55,15 +54,6 @@ sp500 = "^GSPC"
 ndx = "^NDX"
 dxy = "DX-Y.NYB"
 vix = "^VIX"
-
-[fred_series]
-fed_funds = "FEDFUNDS"
-cpi = "CPIAUCSL"
-real_rate = "REAINTRATREARAT10Y"
-m2 = "M2SL"
-gdp = "GDP"
-treasury_10y = "DGS10"
-treasury_3m = "DGS3MO"
 
 [server]
 web_port = 8501

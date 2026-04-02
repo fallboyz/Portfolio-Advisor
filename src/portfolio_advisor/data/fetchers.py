@@ -229,8 +229,6 @@ def fetch_fred_series(
     series_id: str, api_key: str, start: str | None = None
 ) -> pd.DataFrame:
     """Fetch a FRED data series using fredapi."""
-    from datetime import date as date_type
-
     from fredapi import Fred
 
     fred = Fred(api_key=api_key)
@@ -255,14 +253,6 @@ def fetch_fred_series(
     result = result.dropna(subset=["value"])
 
     return result
-
-
-def fetch_fed_funds(api_key: str, start: str | None = None) -> pd.DataFrame:
-    return fetch_fred_series("FEDFUNDS", api_key, start)
-
-
-def fetch_cpi(api_key: str, start: str | None = None) -> pd.DataFrame:
-    return fetch_fred_series("CPIAUCSL", api_key, start)
 
 
 def fetch_real_rate(api_key: str, start: str | None = None) -> pd.DataFrame:
@@ -303,8 +293,7 @@ def fetch_finnhub_news(api_key: str, category: str = "general", days: int = 7) -
     if not api_key:
         return []
 
-    end = datetime.now()
-    start = end - timedelta(days=days)
+    start = datetime.now() - timedelta(days=days)
 
     try:
         resp = requests.get(
@@ -425,11 +414,7 @@ def calculate_buffett_indicator(
     # GDP는 분기별 -> forward fill해서 일별로 확장
     gdp = gdp.set_index("date").resample("D").ffill().reset_index()
 
-    merged = pd.merge(
-        sp500.rename(columns={"date": "date"}),
-        gdp.rename(columns={"date": "date"}),
-        on="date", how="inner",
-    )
+    merged = pd.merge(sp500, gdp, on="date", how="inner")
     merged = merged[merged["gdp"] > 0]
 
     # S&P500 레벨을 시총 프록시로 사용 (비율의 추세만 중요)

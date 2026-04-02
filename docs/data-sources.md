@@ -51,8 +51,6 @@ CAPE 참고 수치:
 
 | 데이터 | 출처 | API | 용도 |
 |--------|------|-----|------|
-| 미국 기준금리 (Fed Funds Rate) | FRED | FEDFUNDS | 참조 |
-| 미국 CPI (소비자물가지수) | FRED | CPIAUCSL | 참조 |
 | 10년 실질금리 | FRED | REAINTRATREARAT10Y | 금/은 밸류에이션 (역상관) |
 | M2 통화량 | FRED | M2SL | M2/금 비율 계산 |
 | GDP | FRED | GDP | Buffett Indicator 계산 |

@@ -241,8 +241,7 @@
                 // Meta
                 var metaText = dateStr;
                 if (data.comments && data.comments.length > 0) {
-                    var lastComment = data.comments[data.comments.length - 1];
-                    metaText = lastComment.date.substring(0, 16).replace("T", " ");
+                    metaText = data.comments[data.comments.length - 1].date.substring(0, 16).replace("T", " ");
                 }
                 document.getElementById("latest-analysis-meta").textContent = metaText;
                 document.getElementById("latest-analysis").style.display = "block";
@@ -735,15 +734,5 @@
         return result;
     }
 
-    function setContent(id, text) {
-        var el = document.getElementById(id);
-        // Clear existing content divs
-        var existing = el.querySelector(".content");
-        if (existing) existing.remove();
-        var div = document.createElement("div");
-        div.className = "content";
-        div.textContent = text;
-        el.appendChild(div);
-    }
 
 })();

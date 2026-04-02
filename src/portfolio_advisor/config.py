@@ -31,11 +31,11 @@ def _find_dotenv(start: Path | None = None) -> Path | None:
 @lru_cache(maxsize=1)
 def load_config(path: str | Path | None = None) -> dict:
     """Load config.toml + .env 환경 변수 오버라이드."""
-    env_path = _find_dotenv()
+    config_path = Path(path) if path else _find_config()
+
+    env_path = _find_dotenv(config_path.parent)
     if env_path:
         load_dotenv(env_path)
-
-    config_path = Path(path) if path else _find_config()
     with open(config_path, "rb") as f:
         config = tomllib.load(f)
 
