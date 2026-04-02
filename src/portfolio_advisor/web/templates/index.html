@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portfolio Advisor</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
@@ -21,7 +22,7 @@
 
         <!-- Signal Card -->
         <div id="signal-card" class="signal-card" style="display:none;">
-            <h1 id="signal-label"></h1>
+            <h1 id="signal-label">-</h1>
             <div id="signal-desc" class="desc"></div>
             <div class="allocation">
                 <span class="precious">실물 자산 <span id="precious-pct"></span>%</span>
@@ -176,25 +177,21 @@
 
         <!-- Analysis by Date -->
         <div id="analysis-section" style="display:none;">
-            <div class="section-header">날짜별 분석</div>
-            <div class="date-selector">
-                <select id="analysis-date-select">
-                    <option value="">날짜 선택...</option>
-                </select>
-            </div>
-            <div id="analysis-detail" style="display:none;">
-                <div class="analysis-subsection">
-                    <h3>데이터 분석</h3>
-                    <div id="analysis-data"></div>
+            <div class="history-card">
+                <div class="history-row1">
+                    <span class="history-title">분석 이력</span>
+                    <div class="history-filter">
+                        <button class="filter-btn active" data-filter="all">전체</button>
+                        <button class="filter-btn" data-filter="composite">자동</button>
+                        <button class="filter-btn" data-filter="comment">AI</button>
+                    </div>
                 </div>
-                <div class="analysis-subsection">
-                    <h3>시장 동향</h3>
-                    <div id="analysis-trend"></div>
+                <div class="history-row2">
+                    <select id="history-year" class="history-select"></select>
+                    <select id="history-month" class="history-select"></select>
                 </div>
-                <div class="analysis-subsection">
-                    <h3>종합 판단</h3>
-                    <div id="analysis-conclusion"></div>
-                </div>
+                <div class="history-list" id="history-list"></div>
+                <div class="history-pager" id="history-pager"></div>
             </div>
         </div>
 

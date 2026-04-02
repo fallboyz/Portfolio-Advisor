@@ -339,6 +339,38 @@ class Store:
             [calc_date],
         ).fetchdf()
 
+    def get_analysis_dates(self) -> list[dict]:
+        """composite_scores + MCP comments를 통합한 분석 시점 목록.
+
+        system author의 comment는 composite와 한 쌍이므로 제외.
+        MCP(claude) comment만 독립 항목으로 표시.
+        """
+        result = self.conn.execute("""
+            SELECT calc_date, analyzed_at, source FROM (
+                SELECT CAST(calc_date AS DATE) AS calc_date,
+                       analyzed_at, 'composite' AS source
+                FROM composite_scores
+                UNION ALL
+                SELECT CAST(date AS DATE) AS calc_date,
+                       CAST(date AS TIMESTAMP) AS analyzed_at, 'comment' AS source
+                FROM comments
+                WHERE author != 'system'
+            ) t
+            ORDER BY analyzed_at DESC
+        """).fetchdf()
+        if result.empty:
+            return []
+        entries = []
+        for _, row in result.iterrows():
+            cd = row["calc_date"]
+            at = row["analyzed_at"]
+            entries.append({
+                "calc_date": cd.isoformat() if hasattr(cd, "isoformat") else str(cd),
+                "analyzed_at": at.isoformat() if hasattr(at, "isoformat") else str(at),
+                "source": row["source"],
+            })
+        return entries
+
     def get_composite_dates(self) -> list[dict]:
         result = self.conn.execute(
             "SELECT calc_date, analyzed_at FROM composite_scores ORDER BY analyzed_at DESC, calc_date DESC"

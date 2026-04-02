@@ -132,6 +132,12 @@ def api_history():
         }
 
 
+@app.get("/api/analysis-dates")
+def api_analysis_dates():
+    with _open_store() as store:
+        return {"entries": store.get_analysis_dates()}
+
+
 @app.get("/api/prices/{symbol}")
 def api_prices(symbol: str, years: int = Query(default=1, ge=0, le=100)):
     symbol_upper = symbol.upper()
@@ -195,10 +201,10 @@ def api_analysis(analysis_date: str, analyzed_at: str | None = None):
         zscores = store.get_zscores_by_date(target)
         comments = store.get_comments_near(analyzed_at_dt) if analyzed_at_dt else store.get_comments_by_date(target)
 
-        if composite is None:
+        if composite is None and comments.empty:
             return {"error": "no data for this date"}
 
-        comp_dict = _serialize(composite)
+        comp_dict = _serialize(composite) if composite else None
 
         zs_list = []
         for _, r in zscores.iterrows():

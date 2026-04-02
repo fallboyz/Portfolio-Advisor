@@ -97,11 +97,8 @@
             });
         });
 
-        // Date selector
-        var sel = document.getElementById("analysis-date-select");
-        sel.addEventListener("change", function () {
-            if (sel.value) loadAnalysis(sel.value);
-        });
+        // Analysis date picker
+        loadAnalysisDates();
     });
 
     // ── Latest Data ──
@@ -432,9 +429,7 @@
             .then(function (data) {
                 if (!data.history || data.history.length === 0) return;
                 document.getElementById("composite-section").style.display = "block";
-                document.getElementById("analysis-section").style.display = "block";
                 renderCompositeHistory(data.history);
-                populateDateSelector(data.dates);
             });
     }
 
@@ -473,79 +468,259 @@
         Plotly.newPlot("chart-composite", traces, layout, plotlyConfig);
     }
 
-    // ── Date Selector + Analysis ──
 
-    function populateDateSelector(dates) {
-        var sel = document.getElementById("analysis-date-select");
-        dates.forEach(function (entry) {
-            var opt = document.createElement("option");
-            opt.value = entry.calc_date + "T" + entry.analyzed_at.substring(11);
-            opt.textContent = entry.calc_date + "  " + entry.analyzed_at.substring(11, 16);
-            sel.appendChild(opt);
-        });
-    }
+    // ── Analysis History ──
 
-    function loadAnalysis(value) {
-        var parts = value.split("T");
-        var dateStr = parts[0];
-        var analyzedAt = parts.length > 1 ? parts[1] : "";
-        var url = "/api/analysis/" + dateStr;
-        if (analyzedAt) url += "?analyzed_at=" + encodeURIComponent(dateStr + "T" + analyzedAt);
-        fetch(url)
+    var allEntries = [];
+    var currentFilter = "all";
+    var currentPage = 1;
+    var pageSize = 15;
+
+    function loadAnalysisDates() {
+        fetch("/api/analysis-dates")
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (data.error) return;
-                renderAnalysis(data);
-                document.getElementById("analysis-detail").style.display = "block";
+                if (!data.entries || data.entries.length === 0) return;
+                allEntries = data.entries;
+                document.getElementById("analysis-section").style.display = "block";
+                buildYearMonthSelects();
+                initHistoryControls();
+                renderHistoryPage();
             });
     }
 
-    function renderAnalysis(data) {
-        var comp = data.composite;
-        var info = SIGNAL_KO[comp.signal_label] || SIGNAL_KO.neutral;
-        var preciousPct = comp.precious_pct || 50;
-        var etfPct = 100 - preciousPct;
+    function buildYearMonthSelects() {
+        var years = {};
+        var monthsByYear = {};
+        allEntries.forEach(function (e) {
+            var d = e.calc_date.substring(0, 10);
+            var y = d.substring(0, 4);
+            var m = d.substring(5, 7);
+            years[y] = true;
+            if (!monthsByYear[y]) monthsByYear[y] = {};
+            monthsByYear[y][m] = true;
+        });
 
-        // Parse comments for sections
-        var dataSection = "";
-        var trendSection = "";
-        var conclusionSection = "";
+        var ySel = document.getElementById("history-year");
+        ySel.innerHTML = "";
+        var optAll = document.createElement("option");
+        optAll.value = "all";
+        optAll.textContent = "전체";
+        ySel.appendChild(optAll);
+        Object.keys(years).sort().reverse().forEach(function (y) {
+            var opt = document.createElement("option");
+            opt.value = y;
+            opt.textContent = y + "년";
+            ySel.appendChild(opt);
+        });
+
+        window._monthsByYear = monthsByYear;
+
+        // 최신 연도 자동 선택
+        var sortedYears = Object.keys(years).sort().reverse();
+        if (sortedYears.length > 0) {
+            ySel.value = sortedYears[0];
+        }
+        updateMonthSelect();
+        // 최신 월 자동 선택
+        var mSel = document.getElementById("history-month");
+        var opts = mSel.querySelectorAll("option");
+        if (opts.length > 1) {
+            mSel.value = opts[1].value; // 첫 번째 실제 월 (전체 다음)
+        }
+    }
+
+    function updateMonthSelect() {
+        var ySel = document.getElementById("history-year");
+        var mSel = document.getElementById("history-month");
+        mSel.innerHTML = "";
+        var optAll = document.createElement("option");
+        optAll.value = "all";
+        optAll.textContent = "전체";
+        mSel.appendChild(optAll);
+
+        var selectedYear = ySel.value;
+        if (selectedYear === "all") return;
+
+        var months = window._monthsByYear[selectedYear] || {};
+        Object.keys(months).sort().reverse().forEach(function (m) {
+            var opt = document.createElement("option");
+            opt.value = m;
+            opt.textContent = m + "월";
+            mSel.appendChild(opt);
+        });
+    }
+
+    function getFilteredEntries() {
+        var year = document.getElementById("history-year").value;
+        var month = document.getElementById("history-month").value;
+
+        return allEntries.filter(function (e) {
+            var d = e.calc_date.substring(0, 10);
+            if (year !== "all" && d.substring(0, 4) !== year) return false;
+            if (month !== "all" && d.substring(5, 7) !== month) return false;
+            if (currentFilter !== "all" && e.source !== currentFilter) return false;
+            return true;
+        });
+    }
+
+    function renderHistoryPage() {
+        var filtered = getFilteredEntries();
+        var totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        var start = (currentPage - 1) * pageSize;
+        var pageItems = filtered.slice(start, start + pageSize);
+
+        var list = document.getElementById("history-list");
+        list.innerHTML = "";
+
+        if (pageItems.length === 0) {
+            list.innerHTML = '<div style="padding:1rem;text-align:center;color:#999;font-size:0.85rem;">데이터 없음</div>';
+        }
+
+        pageItems.forEach(function (entry) {
+            var dateStr = entry.calc_date.substring(0, 10);
+            var timeStr = entry.analyzed_at.substring(11, 16);
+            var badgeClass = entry.source === "comment" ? "comment" : "composite";
+            var badgeLabel = entry.source === "comment" ? "AI 분석" : "자동 분석";
+
+            var row = document.createElement("div");
+            row.className = "h-row";
+
+            var summary = document.createElement("div");
+            summary.className = "h-row-summary";
+            summary.innerHTML =
+                '<span class="h-date">' + dateStr.substring(5) + ' ' + timeStr + '</span>' +
+                '<span class="h-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+                '<span class="h-chevron">&#x203A;</span>';
+
+            var detail = document.createElement("div");
+            detail.className = "h-detail";
+            detail.style.display = "none";
+
+            summary.addEventListener("click", function () {
+                var isOpen = detail.style.display !== "none";
+                list.querySelectorAll(".h-row.open").forEach(function (r) {
+                    r.classList.remove("open");
+                    r.querySelector(".h-detail").style.display = "none";
+                });
+                if (!isOpen) {
+                    row.classList.add("open");
+                    detail.style.display = "block";
+                    loadDetail(detail, dateStr, entry.analyzed_at);
+                }
+            });
+
+            row.appendChild(summary);
+            row.appendChild(detail);
+            list.appendChild(row);
+        });
+
+        renderPager(totalPages);
+    }
+
+    function renderPager(totalPages) {
+        var pager = document.getElementById("history-pager");
+        if (totalPages <= 1) {
+            pager.innerHTML = "";
+            return;
+        }
+        var prevBtn = document.createElement("button");
+        prevBtn.className = "pager-btn";
+        prevBtn.textContent = "<";
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.addEventListener("click", function () {
+            if (currentPage > 1) { currentPage--; renderHistoryPage(); }
+        });
+
+        var nextBtn = document.createElement("button");
+        nextBtn.className = "pager-btn";
+        nextBtn.textContent = ">";
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.addEventListener("click", function () {
+            if (currentPage < totalPages) { currentPage++; renderHistoryPage(); }
+        });
+
+        var info = document.createElement("span");
+        info.textContent = currentPage + " / " + totalPages;
+
+        pager.innerHTML = "";
+        pager.appendChild(prevBtn);
+        pager.appendChild(info);
+        pager.appendChild(nextBtn);
+    }
+
+    function loadDetail(el, calcDate, analyzedAt) {
+        if (el.dataset.loaded) return;
+        el.innerHTML = '<p style="color:#999;font-size:0.8rem;padding:0.5rem;">로딩 중...</p>';
+
+        var url = "/api/analysis/" + calcDate + "?analyzed_at=" + encodeURIComponent(analyzedAt);
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                el.dataset.loaded = "1";
+                if (data.error) {
+                    el.innerHTML = '<p style="color:#999;font-size:0.8rem;">(데이터 없음)</p>';
+                    return;
+                }
+                var s = getSections(data);
+                el.innerHTML =
+                    '<div class="h-detail-section"><strong>데이터 분석</strong><p>' + esc(s.data) + '</p></div>' +
+                    '<div class="h-detail-section"><strong>시장 동향</strong><p>' + esc(s.trend) + '</p></div>' +
+                    '<div class="h-detail-section"><strong>종합 판단</strong><p>' + esc(s.conclusion) + '</p></div>';
+            });
+    }
+
+    function getSections(data) {
+        var comp = data.composite;
+        var d = "", t = "", c = "";
 
         if (data.comments && data.comments.length > 0) {
-            var lastComment = data.comments[data.comments.length - 1];
-            var parsed = parseCommentSections(lastComment.content);
-            dataSection = parsed.data;
-            trendSection = parsed.trend;
-            conclusionSection = parsed.conclusion;
+            var parsed = parseCommentSections(data.comments[data.comments.length - 1].content);
+            d = parsed.data; t = parsed.trend; c = parsed.conclusion;
         }
 
-        // Fallback: build data section from composite numbers
-        if (!dataSection) {
-            var lines = [];
-            lines.push(info.label + " - 실물 " + preciousPct + "% / ETF " + etfPct + "%");
-            lines.push("");
-            lines.push("비율: 실물 자산 " + preciousPct + "% (금 " + (comp.gold_pct || 50) +
-                "% / 은 " + (comp.silver_pct || 50) + "%) | ETF " + etfPct +
-                "% (S&P " + (comp.sp500_pct || 60) + "% / 나스닥 " + (comp.ndx_pct || 40) + "%)");
-            lines.push("");
-            lines.push("수치:");
-            lines.push("  그룹 R=" + (comp.r_group || 0).toFixed(2) +
-                " / 실물 점수=" + (comp.s_precious || 0).toFixed(2) +
-                " / ETF 점수=" + (comp.s_etf || 0).toFixed(2));
-            lines.push("  금=" + (comp.s_gold || 0).toFixed(2) +
-                " / 은=" + (comp.s_silver || 0).toFixed(2) +
-                " / S&P=" + (comp.s_sp500 || 0).toFixed(2) +
-                " / 나스닥=" + (comp.s_ndx || 0).toFixed(2));
-            dataSection = lines.join("\n");
+        if (!d && comp) {
+            var info = SIGNAL_KO[comp.signal_label] || SIGNAL_KO.neutral;
+            var pct = comp.precious_pct || 50;
+            d = info.label + " - 실물 " + pct + "% / ETF " + (100 - pct) + "%\n" +
+                "R=" + (comp.r_group || 0).toFixed(2) + " / 실물=" + (comp.s_precious || 0).toFixed(2) +
+                " / ETF=" + (comp.s_etf || 0).toFixed(2);
         }
 
-        if (!trendSection) trendSection = "(MCP 분석 데이터 없음)";
-        if (!conclusionSection) conclusionSection = info.desc;
-
-        setContent("analysis-data", dataSection);
-        setContent("analysis-trend", trendSection);
-        setContent("analysis-conclusion", conclusionSection);
+        return {
+            data: d || "(데이터 없음)",
+            trend: t || "(MCP 분석 데이터 없음)",
+            conclusion: c || (comp ? (SIGNAL_KO[comp.signal_label] || SIGNAL_KO.neutral).desc : "(판단 데이터 없음)")
+        };
     }
+
+    function esc(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+    }
+
+    function initHistoryControls() {
+        document.getElementById("history-year").addEventListener("change", function () {
+            updateMonthSelect();
+            currentPage = 1;
+            renderHistoryPage();
+        });
+        document.getElementById("history-month").addEventListener("change", function () {
+            currentPage = 1;
+            renderHistoryPage();
+        });
+        document.querySelectorAll(".filter-btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                document.querySelectorAll(".filter-btn").forEach(function (b) { b.classList.remove("active"); });
+                btn.classList.add("active");
+                currentFilter = btn.dataset.filter;
+                currentPage = 1;
+                renderHistoryPage();
+            });
+        });
+    }
+
 
     function parseCommentSections(text) {
         var result = { data: "", trend: "", conclusion: "" };
